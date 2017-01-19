@@ -56,7 +56,7 @@
 % an odd page). Date is included in the header, along with the word "Draft". In
 % the submission version, it is assumed that the document will be printed
 % single-sided. Default is submission.
-    
+
 % [seploa]. When [seploa] is set, the appendices do not appear in the main table
 % of contents (except for the entry "appendices" itself). Rather, they are
 % listed in the list of appendices. According to T.G., you need this if you have
@@ -80,14 +80,9 @@
 \newcommand{\@texwidth}{}
 
 \DeclareOption{1.5in}{%
-  \renewcommand{\@lmarwidth}{.5in}%
-  \renewcommand{\@smarwidth}{.0in}%
-  \renewcommand{\@texwidth}{6.0in}%
-}
-\DeclareOption{1.7in}{%
-  \renewcommand{\@lmarwidth}{.7in}%
-  \renewcommand{\@smarwidth}{.0in}%
-  \renewcommand{\@texwidth}{5.8in}%
+	\renewcommand{\@lmarwidth}{.0in}%
+	\renewcommand{\@smarwidth}{.0in}%
+	\renewcommand{\@texwidth}{6.5in}%
 }
 
 % One and half or double spacing?
@@ -116,7 +111,7 @@
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{\bookclass}}
 
 % These are the default options.
-\ExecuteOptions{12pt,1.7in,double,submission}
+\ExecuteOptions{12pt,1.5in,double,submission}
 \ProcessOptions\relax
 
 \if@preprint
@@ -158,42 +153,42 @@
 
 % Redefine the default (plain) pagestyle
 \renewcommand{\ps@plain}{%
-  \renewcommand{\@oddhead}{%
-    \ifnum\value{page}=1\else
-    \if@preprint
-    \textit{\small Draft}\hfil\@formatdate
-    \fi
-    \hfil\thepage
-    \fi
-  }
-  \renewcommand{\@evenhead}{%
-    \thepage\hfil\@formatdate\hfil\textit{\small Draft}%
-  }
-  \renewcommand{\@oddfoot}{}
-  \renewcommand{\@evenfoot}{}
+	\renewcommand{\@oddhead}{%
+		\ifnum\value{page}=1\else
+		\if@preprint
+		\textit{\small Draft}\hfil\@formatdate
+		\fi
+		\hfil\thepage
+		\fi
+	}
+	\renewcommand{\@evenhead}{%
+		\thepage\hfil\@formatdate\hfil\textit{\small Draft}%
+	}
+	\renewcommand{\@oddfoot}{}
+	\renewcommand{\@evenfoot}{}
 }
 
 \newcommand{\@formatdate}{%
-  \textit{\scriptsize {\number\year/\number\month/\number\day}}%
+	\textit{\scriptsize {\number\year/\number\month/\number\day}}%
 }
 
 % To clear completely empty pages. It's not really that necessary. The
 % submission version is single-sided and won't need this anyway.
 \renewcommand{\cleardoublepage}{%
-  \clearpage%
-  \if@twoside%
-  \ifodd\c@page%
-  \else\mbox{}\thispagestyle{empty}\newpage%
-  \if@twocolumn\mbox{}\newpage\fi\fi\fi%
+	\clearpage%
+	\if@twoside%
+	\ifodd\c@page%
+	\else\mbox{}\thispagestyle{empty}\newpage%
+	\if@twocolumn\mbox{}\newpage\fi\fi\fi%
 }
 
 % Authors: use \mainmatter before the main content
 \renewcommand{\mainmatter}{%
-  \cleardoublepage%
-  \@mainmattertrue%
-  \pagestyle{plain}
-  \setcounter{page}{1}%
-  \pagenumbering{arabic}%
+	\cleardoublepage%
+	\@mainmattertrue%
+	\pagestyle{plain}
+	\setcounter{page}{1}%
+	\pagenumbering{arabic}%
 }
 
 % T.G. : Figures and tables in the appendices should be listed in separate
@@ -208,24 +203,24 @@
 \newcommand{\ext@toc}{toc}
 
 \renewcommand\appendix{%
-  \cleardoublepage%
-  \@appendixtrue%
-  \setcounter{chapter}{0}%
-  \setcounter{section}{0}%
-  \gdef\@chapapp{\appendixname}%
-  \gdef\thechapter{\@Alph\c@chapter}%
-  \renewcommand{\ext@figure}{loaf}%
-  \renewcommand{\ext@table}{loat}%
-  \if@seploa\def\ext@toc{loap}\fi%
-  \addcontentsline{toc}{chapter}{Appendices}%
-  \appendixpage%
+	\cleardoublepage%
+	\@appendixtrue%
+	\setcounter{chapter}{0}%
+	\setcounter{section}{0}%
+	\gdef\@chapapp{\appendixname}%
+	\gdef\thechapter{\@Alph\c@chapter}%
+	\renewcommand{\ext@figure}{loaf}%
+	\renewcommand{\ext@table}{loat}%
+	\if@seploa\def\ext@toc{loap}\fi%
+	\addcontentsline{toc}{chapter}{Appendices}%
+	\appendixpage%
 }
 
 % T.G. : An appendix page is required before the appendices.
 \newcommand{\appendixpage}{%
-  \vspace*{0.3\textheight}
-  \begin{center}{\heading APPENDICES}\end{center}%
-  \clearpage%
+	\vspace*{0.3\textheight}
+	\begin{center}{\heading APPENDICES}\end{center}%
+	\clearpage%
 }
 
 % Redefine \@chapter, so that appendices are added in .loap file if [seploa] is
@@ -233,29 +228,29 @@
 % different chapters. I am not sure yet if it is necessary. The following code
 % is pretty much copied from book.cls. If it looks messy, don't blame me :P
 \def\@chapter[#1]#2{
-  \ifnum \c@secnumdepth >\m@ne
-    \if@mainmatter
-      \refstepcounter{chapter}
-      \typeout{\@chapapp\space\thechapter.}
-      \addcontentsline{\ext@toc}{\if@appendix app\else chapter\fi}{\protect\numberline{\thechapter}#1}
-    \else
-      \addcontentsline{\ext@toc}{chapter}{#1}
-    \fi
-  \else
-    \addcontentsline{\ext@toc}{chapter}{#1}
-  \fi
-  \chaptermark{#1}
-  \addtocontents{\ext@figure}{\protect\addvspace{10\p@}}
-  \addtocontents{\ext@table}{\protect\addvspace{10\p@}}
+	\ifnum \c@secnumdepth >\m@ne
+	\if@mainmatter
+	\refstepcounter{chapter}
+	\typeout{\@chapapp\space\thechapter.}
+	\addcontentsline{\ext@toc}{\if@appendix app\else chapter\fi}{\protect\numberline{\thechapter}#1}
+	\else
+	\addcontentsline{\ext@toc}{chapter}{#1}
+	\fi
+	\else
+	\addcontentsline{\ext@toc}{chapter}{#1}
+	\fi
+	\chaptermark{#1}
+	\addtocontents{\ext@figure}{\protect\addvspace{10\p@}}
+	\addtocontents{\ext@table}{\protect\addvspace{10\p@}}
 	\ifthenelse{\isundefined{\listofalgorithms}}{}{
-  	\addtocontents{\ext@algorithm}{\protect\addvspace{10\p@}}
-  }
-  \if@twocolumn
-    \@topnewpage[\@makechapterhead{#2}]
-  \else
-    \@makechapterhead{#2}
-    \@afterheading
-  \fi
+		\addtocontents{\ext@algorithm}{\protect\addvspace{10\p@}}
+	}
+	\if@twocolumn
+	\@topnewpage[\@makechapterhead{#2}]
+	\else
+	\@makechapterhead{#2}
+	\@afterheading
+	\fi
 }
 
 % T.G. : These elements should be single-spaced: Blocked quotes, bibliography,
@@ -264,13 +259,13 @@
 
 % Bibliography: Redefine the bibliography to make it single-spaced.
 \renewcommand{\bibliography}[1]{%
-  \if@filesw
-    \immediate\write\@auxout{\string\bibdata{#1}}%
-  \fi
-  \addcontentsline{toc}{chapter}{Bibliography}
-  \begin{singlespacing}
-  \@input@{\jobname.bbl}
-  \end{singlespacing}
+	\if@filesw
+	\immediate\write\@auxout{\string\bibdata{#1}}%
+	\fi
+	\addcontentsline{toc}{chapter}{Bibliography}
+	\begin{singlespacing}
+		\@input@{\jobname.bbl}
+	\end{singlespacing}
 }
 
 % Footnotes: they are not effected by linespacing anyway (always single-spaced).
@@ -286,14 +281,14 @@
 % stores the contents to a variable \@somevar.
 
 \newcommand{\definevar}[2][-]{%
-  \expandafter\def\csname #2\endcsname{%
-    \expandafter\gdef\csname @#2\endcsname
-  }
-  \if#1-
-  \csname #2\endcsname{\@latex@error{No #2 defined}\@ehc}
-  \else
-  \csname #2\endcsname{#1}
-  \fi
+	\expandafter\def\csname #2\endcsname{%
+		\expandafter\gdef\csname @#2\endcsname
+	}
+	\if#1-
+	\csname #2\endcsname{\@latex@error{No #2 defined}\@ehc}
+	\else
+	\csname #2\endcsname{#1}
+	\fi
 }
 
 \definevar{title}
@@ -333,11 +328,11 @@
 \newcommand{\emptyline}{\mbox{}\newline}
 
 \newcommand{\advisorstring}{%
-  \hfill
-  \if\@coadvisor * \@advisor
-  \else \@advisor\hfill\@coadvisor
-  \fi 
-  \hfill
+	\hfill
+	\if\@coadvisor * \@advisor
+	\else \@advisor\hfill\@coadvisor
+	\fi 
+	\hfill
 }
 
 % Flyleaf, a blankpage
@@ -345,130 +340,122 @@
 
 % Abstract page
 \newcommand{\abspage}{
-  \pagestyle{empty}
-  \begin{doublespacing} 
-    \begin{center} 
-      {\heading AN ABSTRACT OF THE \MakeUppercase{\@doctype} OF}
-    \end{center}
-    \begin{flushleft}
-      \noindent
-      \ulinewithbreaks{\@author} for the degree of \ulinewithbreaks{\@degree} in%
-      \if\@twomajor * \ulinewithbreaks{\@major}
-      \else
-      \ulinewithbreaks{\@major} and \ulinewithbreaks{\@twomajor}
-      \fi
-      presented on \uline{\@submitdate}.\\
-      \emptyline
-      \noindent Title: \ulinewithbreaks{\@title}
-    \end{flushleft}
-    \emptyline
-    Abstract approved: \hrulefill \\
-    \phantom{Abstract approved:\ }\advisorstring
-    \vspace{1em}
-  \end{doublespacing}
-  \noindent
-  \emptyline
-  \emptyline
-  \@abstract
-  \clearpage
+	\pagestyle{empty}
+	\begin{doublespacing} 
+		\begin{center} 
+			{\heading AN ABSTRACT OF THE \MakeUppercase{\@doctype} OF}
+		\end{center}
+		\begin{flushleft}
+			\noindent
+			\ulinewithbreaks{\@author} for the degree of \ulinewithbreaks{\@degree} in%
+			\if\@twomajor * \ulinewithbreaks{\@major}
+			\else
+			\ulinewithbreaks{\@major} and \ulinewithbreaks{\@twomajor}
+			\fi
+			presented on \uline{\@submitdate}.\\
+			\emptyline
+			\noindent Title: \ulinewithbreaks{\@title}
+		\end{flushleft}
+		\emptyline
+		Abstract approved: \hrulefill \\
+		\phantom{Abstract approved:\ }\advisorstring
+		\vspace{1em}
+	\end{doublespacing}
+	\noindent
+	\emptyline
+	\emptyline
+	\@abstract
+	\clearpage
 }
 
 % Copyright page
 \newcommand{\copyrightpage}{
-  \begin{singlespacing}
-  \thispagestyle{empty}
-  \vspace*{10\baselineskip}
-  \begin{center}
-    ${}^\copyright$Copyright by \@author\\
-    \@submitdate \\
-    All Rights Reserved
-  \end{center}
-  \end{singlespacing}
-  \clearpage
+	\begin{singlespacing}
+		\thispagestyle{empty}
+		\vspace*{10\baselineskip}
+		\begin{center}
+			${}^\copyright$Copyright by \@author\\
+			\@submitdate \\
+			All Rights Reserved
+		\end{center}
+	\end{singlespacing}
+	\clearpage
 }
 
 % Title page
 \renewcommand{\titlepage}{
-    \thispagestyle{empty}
-    \begin{center}
-      \setlength{\baselineskip}{14.5pt}
-      {\heading \@title} \\
-      \emptyline by\\ \emptyline
-      \@author\\
-      \vfill
-      A \MakeUppercase{\@doctype}\\ \emptyline
-      submitted to\\ \emptyline
-      Oregon State University\\
-      \vfill
-      in partial fulfillment of\\
-      the requirements for the\\
-      degree of\\ \emptyline
-      \@degree
-      \vfill
-      Presented \@submitdate\\
-      Commencement June \@commencementyear
-    \end{center}
-  \clearpage
+	\thispagestyle{empty}
+	\begin{center}
+		\setlength{\baselineskip}{14.5pt}
+		{\heading \@title} \\
+		\emptyline\\
+		\@author, \@advisor\\
+		\emptyline\\
+		{\heading ABSTRACT}\\
+	\end{center}
+	\emptyline
+	\@abstract
+	\clearpage
 }
 
 % Approval page
 \newcommand{\approvalpage}{
-  \thispagestyle{empty}
-  \begin{singlespacing}
-    \begin{flushleft}
-      \noindent
-      \ulinewithbreaks{\@degree} \MakeLowercase{\@doctype} of \ulinewithbreaks{\@author} 
-      presented on \uline{\@submitdate}. \\
-      \vspace{3em}
-      APPROVED:\\
-      \vspace{3em}
-      \hrulefill \\
-      % Major Professor (Co- if there is a coadvisor}
-      \if\@coadvisor *
-      \else Co-\fi Major Professor, representing \@major \\
-      \vspace{3em}
-      % Second major professor if exists
-      \if\@coadvisor *
-      \else\hrulefill \\  Co-Major Professor, representing \@twomajor \\
-      \vspace{3em}
-      \fi
-      \hrulefill \\ 
-      % major department head
-      \@depthead\ of the \@depttype\ of \@department \\
-      \vspace{3em}
-      \if\@twodepartment * 
-      \else
-      % Here is the second Department
-      \hrulefill \\ 
-      \@twodepthead\ of the \@twodepttype\ of \@twodepartment \\
-      \vspace{3em}
-      \fi
-      \hrulefill \\
-      Dean of the Graduate School \\
-      \vfill
-      I understand that my \MakeLowercase{\@doctype} will become part of the
-      permanent collection of Oregon State University libraries. My signature
-      below authorizes release of my \MakeLowercase{\@doctype} to any reader
-      upon request.
-      \vspace{3em} \\
-      \hrulefill \\
-      \makebox[\textwidth]{\hfill \@author, Author \hfill}
-    \end{flushleft}
-  \end{singlespacing}
-  \clearpage
+	\thispagestyle{empty}
+	\begin{singlespacing}
+		\begin{flushleft}
+			\noindent
+			\ulinewithbreaks{\@degree} \MakeLowercase{\@doctype} of \ulinewithbreaks{\@author} 
+			presented on \uline{\@submitdate}. \\
+			\vspace{3em}
+			APPROVED:\\
+			\vspace{3em}
+			\hrulefill \\
+			% Major Professor (Co- if there is a coadvisor}
+			\if\@coadvisor *
+			\else Co-\fi Major Professor, representing \@major \\
+			\vspace{3em}
+			% Second major professor if exists
+			\if\@coadvisor *
+			\else\hrulefill \\  Co-Major Professor, representing \@twomajor \\
+			\vspace{3em}
+			\fi
+			\hrulefill \\ 
+			% major department head
+			\@depthead\ of the \@depttype\ of \@department \\
+			\vspace{3em}
+			\if\@twodepartment * 
+			\else
+			% Here is the second Department
+			\hrulefill \\ 
+			\@twodepthead\ of the \@twodepttype\ of \@twodepartment \\
+			\vspace{3em}
+			\fi
+			\hrulefill \\
+			Dean of the Graduate School \\
+			\vfill
+			I understand that my \MakeLowercase{\@doctype} will become part of the
+			permanent collection of Oregon State University libraries. My signature
+			below authorizes release of my \MakeLowercase{\@doctype} to any reader
+			upon request.
+			\vspace{3em} \\
+			\hrulefill \\
+			\makebox[\textwidth]{\hfill \@author, Author \hfill}
+		\end{flushleft}
+	\end{singlespacing}
+	\clearpage
 }
 
 \definevar[*]{dedcontent}
 \newcommand{\dedpage}{
-  \if \@dedcontent *
-  \else
-  \thispagestyle{empty}
-  \vspace*{10\baselineskip}
-  \begin{center}
-  \@dedcontent
-  \end{center}
-  \clearpage
-  \fi
+	\if \@dedcontent *
+	\else
+	\thispagestyle{empty}
+	\vspace*{10\baselineskip}
+	\begin{center}
+		\@dedcontent
+	\end{center}
+	\clearpage
+	\fi
 }
 
 % A definition generator for general pretext pages.
@@ -481,20 +468,20 @@
 % by using \renewenvironment{namepageenv}.
 
 \newcommand{\definepretextpage}[2]{%
-  \definevar[*]{#1content}
-  \expandafter\newcommand\csname #1page\endcsname{%
-    \if\csname @#1content\endcsname *
-    \else
-    \thispagestyle{empty}
-    \begin{center}
-      {\heading #2}
-    \end{center}
-    \noindent
-    \emptyline
-    \csname @#1content\endcsname
-    \clearpage
-    \fi
-  }
+	\definevar[*]{#1content}
+	\expandafter\newcommand\csname #1page\endcsname{%
+		\if\csname @#1content\endcsname *
+		\else
+		\thispagestyle{empty}
+		\begin{center}
+			{\heading #2}
+		\end{center}
+		\noindent
+		\emptyline
+		\csname @#1content\endcsname
+		\clearpage
+		\fi
+	}
 }
 
 % Acknowledgements, contribution, dedication, and preface.
@@ -506,52 +493,52 @@
 % The commands for optional pages will check if the content is defined. If not,
 % the page will not be produced. There is no need to check here.
 \newcommand{\pretext}{%
-  \pagenumbering{roman}
-  
-  % Mandatory pages
-  \flyleaf           % A. Flyleaf
-  \abspage           % B. Abstract
-  \copyrightpage     % C. Copyright page
-  \titlepage         % D. Title page
-  \approvalpage      % E. Approval page
-
-  % Optional pages
-  \ackpage           % F. Acknowledgments
-  \contripage        % G. Contribution of authors
-
-  % Listings
-  \tableofcontents        % H.
-  \listoffigures          % I.
-  \listoftables           % J
-
+	\pagenumbering{roman}
+	
+	% Mandatory pages
+	%\flyleaf           % A. Flyleaf
+	%\abspage           % B. Abstract
+	%\copyrightpage     % C. Copyright page
+	\titlepage         % D. Title page
+	%\approvalpage      % E. Approval page
+	
+	% Optional pages
+	%\ackpage           % F. Acknowledgments
+	%\contripage        % G. Contribution of authors
+	
+	% Listings
+	%\tableofcontents        % H.
+	%\listoffigures          % I.
+	%\listoftables           % J
+	
 	% Algorithm listing
-%	\ifthenelse{\isundefined{\listofalgorithms}}{}{
-%  \expandafter\newcommand\csname ps@loaa\endcsname{
-%  \renewcommand{\@oddhead}{%
-%  \parbox{\textwidth}{%
-%  \centering {\heading LIST OF ALGORITHMS} \\ 
-%  \uline{Algorithm}\hfill\uline{Page}}}
-%  \renewcommand{\@oddfoot}{}
-%  \renewcommand{\@evenfoot}{}}
-%  \expandafter\newcommand\csname ps@loab\endcsname{%
-%  \renewcommand{\@oddhead}{%
-%  \parbox{\textwidth}{%
-%  \centering {\heading LIST OF ALGORITHMS\ (Continued)} \\ 
-%  \uline{Algorithm}\hfill\uline{Page}}}
-%  \renewcommand{\@evenhead}{\@oddhead}
-%  \renewcommand{\@oddfoot}{}
-%  \renewcommand{\@evenfoot}{}}
-%	\renewcommand{\listalgorithmname}{\pagestyle{loab}\thispagestyle{loaa}\vspace{-1.28in}}
-%  \listofalgorithms
-%  }
-
-  \listofappendices       % K.
-  \listofappendixfigures  % L.
-  \listofappendixtables   % M.
-
-  % Optional pages
-  \dedpage           % O. Dedication
-  \prefpage          % P. Preface
+	%	\ifthenelse{\isundefined{\listofalgorithms}}{}{
+	%  \expandafter\newcommand\csname ps@loaa\endcsname{
+	%  \renewcommand{\@oddhead}{%
+	%  \parbox{\textwidth}{%
+	%  \centering {\heading LIST OF ALGORITHMS} \\ 
+	%  \uline{Algorithm}\hfill\uline{Page}}}
+	%  \renewcommand{\@oddfoot}{}
+	%  \renewcommand{\@evenfoot}{}}
+	%  \expandafter\newcommand\csname ps@loab\endcsname{%
+	%  \renewcommand{\@oddhead}{%
+	%  \parbox{\textwidth}{%
+	%  \centering {\heading LIST OF ALGORITHMS\ (Continued)} \\ 
+	%  \uline{Algorithm}\hfill\uline{Page}}}
+	%  \renewcommand{\@evenhead}{\@oddhead}
+	%  \renewcommand{\@oddfoot}{}
+	%  \renewcommand{\@evenfoot}{}}
+	%	\renewcommand{\listalgorithmname}{\pagestyle{loab}\thispagestyle{loaa}\vspace{-1.28in}}
+	%  \listofalgorithms
+	%  }
+	
+	%\listofappendices       % K.
+	%\listofappendixfigures  % L.
+	%\listofappendixtables   % M.
+	
+	% Optional pages
+	%\dedpage           % O. Dedication
+	\prefpage          % P. Preface
 }
 
 \renewcommand{\maketitle}{\if\@nopretext \else\pretext\fi}
@@ -561,130 +548,130 @@
 
 % Chapter heading. T.G. : all title must be the same size (14 or normal).
 \renewcommand{\@makechapterhead}[1]{%
-  \vspace*{10\p@}%
-  {
-    \begin{center}
-      \normalfont\heading
-      \ifnum \c@secnumdepth >\m@ne
-      \if@mainmatter\heading\@chapapp\ \thechapter:\ \fi
-      \fi
-      \heading #1\par\nobreak
-      \vskip 20\p@
-    \end{center}
-  }
+	\vspace*{10\p@}%
+	{
+		\begin{center}
+			\normalfont\heading
+			\ifnum \c@secnumdepth >\m@ne
+			\if@mainmatter\heading\@chapapp\ \thechapter:\ \fi
+			\fi
+			\heading #1\par\nobreak
+			\vskip 20\p@
+		\end{center}
+	}
 }
 
 % Silent chapter heading (\chapter*).
 \renewcommand{\@makeschapterhead}[1]{%
-  \vspace*{10\p@}%
-  {
-    \begin{center}
-      \normalfont\heading
-      \heading #1\par\nobreak
-      \vskip 20\p@
-    \end{center}
-  }
+	\vspace*{10\p@}%
+	{
+		\begin{center}
+			\normalfont\heading
+			\heading #1\par\nobreak
+			\vskip 20\p@
+		\end{center}
+	}
 }
 
 \def\@sect#1#2#3#4#5#6[#7]#8{%
-  \ifnum #2>\c@secnumdepth
-    \let\@svsec\@empty
-  \else
-    \refstepcounter{#1}%
-    \protected@edef\@svsec{\@seccntformat{#1}\relax}%
-  \fi
-  \@tempskipa #5\relax
-  \ifdim \@tempskipa>\z@
-    \begingroup
-      #6{%
-        \@hangfrom{\hskip #3\relax\@svsec}%
-          \interlinepenalty \@M #8\@@par}%
-    \endgroup
-    \csname #1mark\endcsname{#7}%
-    \if@appendix \else
-      \addcontentsline{\ext@toc}{#1}{%
-      \ifnum #2>\c@secnumdepth \else
-        \protect\numberline{\csname the#1\endcsname}%
-      \fi
-      #7}%
-      \fi
-  \else
-    \def\@svsechd{%
-      #6{\hskip #3\relax
-      \@svsec #8}%
-      \csname #1mark\endcsname{#7}%
-      \if@appendix \else
-        \addcontentsline{\ext@toc}{#1}{%
-         \ifnum #2>\c@secnumdepth \else
-           \protect\numberline{\csname the#1\endcsname}%
-         \fi
-         #7}%
-       \fi}%
-  \fi
-  \@xsect{#5}}
+	\ifnum #2>\c@secnumdepth
+	\let\@svsec\@empty
+	\else
+	\refstepcounter{#1}%
+	\protected@edef\@svsec{\@seccntformat{#1}\relax}%
+	\fi
+	\@tempskipa #5\relax
+	\ifdim \@tempskipa>\z@
+	\begingroup
+	#6{%
+		\@hangfrom{\hskip #3\relax\@svsec}%
+		\interlinepenalty \@M #8\@@par}%
+	\endgroup
+	\csname #1mark\endcsname{#7}%
+	\if@appendix \else
+	\addcontentsline{\ext@toc}{#1}{%
+		\ifnum #2>\c@secnumdepth \else
+		\protect\numberline{\csname the#1\endcsname}%
+		\fi
+		#7}%
+	\fi
+	\else
+	\def\@svsechd{%
+		#6{\hskip #3\relax
+			\@svsec #8}%
+		\csname #1mark\endcsname{#7}%
+		\if@appendix \else
+		\addcontentsline{\ext@toc}{#1}{%
+			\ifnum #2>\c@secnumdepth \else
+			\protect\numberline{\csname the#1\endcsname}%
+			\fi
+			#7}%
+		\fi}%
+	\fi
+	\@xsect{#5}}
 
 \renewcommand{\section}{\@startsection
-  {section}%                   % the name
-  {1}%                         % the level
-  {0mm}%                       % the indent
-  {-\baselineskip}%            % the before skip
-  {0.5\baselineskip}%          % the after skip
-  {\normalfont\heading}}       % the style
+	{section}%                   % the name
+	{1}%                         % the level
+	{0mm}%                       % the indent
+	{-\baselineskip}%            % the before skip
+	{0.5\baselineskip}%          % the after skip
+	{\normalfont\heading}}       % the style
 
 \renewcommand{\subsection}{\@startsection
-  {subsection}%                % the name
-  {1}%                         % the level
-  {0mm}%                       % the indent
-  {-\baselineskip}%            % the before skip
-  {0.5\baselineskip}%          % the after skip
-  {\normalfont\heading}}       % the style
+	{subsection}%                % the name
+	{1}%                         % the level
+	{0mm}%                       % the indent
+	{-\baselineskip}%            % the before skip
+	{0.5\baselineskip}%          % the after skip
+	{\normalfont\heading}}       % the style
 
 \renewcommand{\subsubsection}{\@startsection
-  {subsubsection}%             % the name
-  {1}%                         % the level
-  {0mm}%                       % the indent
-  {-\baselineskip}%            % the before skip
-  {0.5\baselineskip}%          % the after skip
-  {\normalfont\heading}}       % the style
+	{subsubsection}%             % the name
+	{1}%                         % the level
+	{0mm}%                       % the indent
+	{-\baselineskip}%            % the before skip
+	{0.5\baselineskip}%          % the after skip
+	{\normalfont\heading}}       % the style
 
 % Listings. l@kind handles an entry of a "kind" in the listing
 % T.G. : No bold faces should appear in the pretext (including the listings, of
 % course). This is why l@chapter is being redefined here.
 \def\l@chapter#1#2{%
-  \ifnum \c@tocdepth >\m@ne
-    \addpenalty{-\@highpenalty}%
-    \vskip 1.0em \@plus\p@
-    \setlength\@tempdima{1.5em}%
-    \begingroup
-      \parindent \z@ \rightskip \@pnumwidth
-      \parfillskip -\@pnumwidth
-      \leavevmode %\large
-      \advance\leftskip\@tempdima
-      \hskip -\leftskip
-      #1\nobreak\hfil \nobreak\hb@xt@\@pnumwidth{\hss #2}\par
-      \penalty\@highpenalty
-    \endgroup
-  \fi}
+	\ifnum \c@tocdepth >\m@ne
+	\addpenalty{-\@highpenalty}%
+	\vskip 1.0em \@plus\p@
+	\setlength\@tempdima{1.5em}%
+	\begingroup
+	\parindent \z@ \rightskip \@pnumwidth
+	\parfillskip -\@pnumwidth
+	\leavevmode %\large
+	\advance\leftskip\@tempdima
+	\hskip -\leftskip
+	#1\nobreak\hfil \nobreak\hb@xt@\@pnumwidth{\hss #2}\par
+	\penalty\@highpenalty
+	\endgroup
+	\fi}
 
 % For separate listings of appendices ([seploa] is set), every appendix is
 % listed the same as a chapter, otherwise it is like a section. not sure if it's
 % the optimal solution. but it looks nice for now.
 \def\l@app#1#2{%
-  \if@seploa\l@chapter{#1}{#2}
-  \else
-  {\vskip 4pt {\baselineskip 14.5pt%
-    \@dottedtocline{1}{1pc}{2em}{#1}{#2}}}
-  \fi
+	\if@seploa\l@chapter{#1}{#2}
+	\else
+	{\vskip 4pt {\baselineskip 14.5pt%
+			\@dottedtocline{1}{1pc}{2em}{#1}{#2}}}
+	\fi
 }
 
 \def\l@section#1#2{\vskip 4pt {\baselineskip 14.5pt%
-    \@dottedtocline{1}{1pc}{2em}{#1}{#2}} }
+		\@dottedtocline{1}{1pc}{2em}{#1}{#2}} }
 \def\l@subsection#1#2{ {\baselineskip 14.5pt%
-    \@dottedtocline{2}{4pc}{2.8em}{#1}{#2}}}
+		\@dottedtocline{2}{4pc}{2.8em}{#1}{#2}}}
 \def\l@subsubsection#1#2{{\baselineskip 14.5pt%
-    \@dottedtocline{3}{7pc}{3.4em}{#1}{#2}}}
+		\@dottedtocline{3}{7pc}{3.4em}{#1}{#2}}}
 \def\l@figure#1#2{\vskip 9.5pt {\baselineskip 14.5pt%
-    \@dottedtocline{1}{1.5em}{2.3em}{#1}{#2}}}
+		\@dottedtocline{1}{1.5em}{2.3em}{#1}{#2}}}
 \let\l@table\l@figure
 
 % We want to ignore footnotes in any listing. If this is not what you want,
@@ -706,38 +693,38 @@
 % #3 : short name (to appear as the heading on the top of the left column)
 % #4 : command name (to be used to make the listing)
 \newcommand{\definelisting}[4]{
-  % Page style for the first page. If twoside is set, the page is an
-  % oddpage. Otherwise, \evenhead is not used anyway.
-  \expandafter\newcommand\csname ps@#1a\endcsname{%
-    \renewcommand{\@oddhead}{%
-      \parbox{\textwidth}{%
-        \centering {\heading #2} \\ 
-        \uline{#3}\hfill\uline{Page}
-      }
-    }
-    \renewcommand{\@oddfoot}{}
-    \renewcommand{\@evenfoot}{}
-  }
-  % Page style for the following pages
-  \expandafter\newcommand\csname ps@#1b\endcsname{%
-    \renewcommand{\@oddhead}{%
-      \parbox{\textwidth}{%
-        \centering {\heading #2\ (Continued)} \\ 
-        \uline{#3}\hfill\uline{Page}
-      }
-    }
-    \renewcommand{\@evenhead}{\@oddhead}
-    \renewcommand{\@oddfoot}{}
-    \renewcommand{\@evenfoot}{}
-  }
-  % The command itself. I had to use \def rather than \newcommand because we
-  % might be redefining \tableofcontents.
-  \expandafter\def\csname #4\endcsname{%
-    \cleardoublepage
-    \pagestyle{#1b}
-    \thispagestyle{#1a}
-    {\let\footnote\@ignore\@starttoc{#1}}
-  }
+	% Page style for the first page. If twoside is set, the page is an
+	% oddpage. Otherwise, \evenhead is not used anyway.
+	\expandafter\newcommand\csname ps@#1a\endcsname{%
+		\renewcommand{\@oddhead}{%
+			\parbox{\textwidth}{%
+				\centering {\heading #2} \\ 
+				\uline{#3}\hfill\uline{Page}
+			}
+		}
+		\renewcommand{\@oddfoot}{}
+		\renewcommand{\@evenfoot}{}
+	}
+	% Page style for the following pages
+	\expandafter\newcommand\csname ps@#1b\endcsname{%
+		\renewcommand{\@oddhead}{%
+			\parbox{\textwidth}{%
+				\centering {\heading #2\ (Continued)} \\ 
+				\uline{#3}\hfill\uline{Page}
+			}
+		}
+		\renewcommand{\@evenhead}{\@oddhead}
+		\renewcommand{\@oddfoot}{}
+		\renewcommand{\@evenfoot}{}
+	}
+	% The command itself. I had to use \def rather than \newcommand because we
+	% might be redefining \tableofcontents.
+	\expandafter\def\csname #4\endcsname{%
+		\cleardoublepage
+		\pagestyle{#1b}
+		\thispagestyle{#1a}
+		{\let\footnote\@ignore\@starttoc{#1}}
+	}
 }
 
 \definelisting{toc}{TABLE OF CONTENTS}{}{tableofcontents}
