@@ -63,62 +63,32 @@ In the Pacific, the sea floor is too deep to make use of the sea bed.
 Instead, some wave energy converters use a large underwater disk called a ``heave plate''.
 The purpose of a heave plate is to make as much drag as possible when the buoy tries to pull it up through the water, creating an immobile base as possible to substitute for an anchor. 
 To make wave energy converters cost competitive with established renewable and fossil fuels, they must be optimized to be as efficient as possible. 
-Doing this requires a fast, accurate fluid flow solver capable of handling fluid structure interaction for complex bodies. 
+This paper will discuss the development and characterization cuIBM-FSI~\cite{cuIBM-v0.1}, a fast fluid flow solver for handling fluid structure interaction with complex bodies. 
 
-Modern CPUs typically have four to eight cores. 
-Graphics processing units (GPUs) can have hundreds to thousands of simpler cores. 
-The key to achieving high performance with a GPU is using them for highly parallel problems.
-A highly parallel problem is one where large quantities of data can be independently operated on at the same time. 
-Many operations in computer graphics are parallel because each pixel can be calculated independently. 
-Computational fluid dynamics presents another opportunity for GPU acceleration because when solving the fluid flow the Navier--Stokes equations must be discretized and solved simultaneously at many finite grid points. 
-Most of the calculations required can assign one grid point to its own core. 
+Graphics processing units (GPUs) have a high theoretical performance for highly parallel problems. 
+The extensive linear algebra required in computational fluid dynamics presents an enticing opportunity for GPUs. 
+To achieve a speedup over commercial solvers, cuIBM-FSI performs most calculations using GPUs. 
 
 A lot of recent work has focused on writing algorithms to work on GPU-accelerated hybrid clusters, or traditional supercomputers with GPUs available at each node~\cite{xu2014collaborating,liu2016hybrid,norouzi2016new}. 
 This is sometimes referred to as GPU acceleration. 
-On a cluster it makes sense to use both CPU and GPU because data passed between nodes using message passing interface must be transfered to the CPU. 
-When there is only one node, such as in a workstation, the time it takes to transfer data between the CPU and GPU is often prohibitive. 
-In addition, modern GPUs are approaching 10 TeraFLOPs compared to CPUs, which typically achieve 500 GigaFLOPs without over-clocking. 
-The goal of this project is to develop a fluid flow solver that only uses the GPU, called cuIBM-FSI~\cite{cuIBM-v0.1}: CUda (Compute Unified Device Architecture, a programming language for NVIDIA GPUs) Immersed Boundary Method for Fluid-Structure Interaction. 
-The eventual purpose of cuIBM-FSI is to have a highly efficient solver to study wave energy converters. 
-cuIBM-FSI was forked from cuIBM, which was developed by the Barba group~\cite{layton2011cuibm}. 
-cuIBM is a GPU-based immersed boundary method solver primarily based on the method developed by Taira and Colonius~\cite{Taira:2007jl}. 
-It can not handle coupled fluid-structure interaction and produces numerical oscillations when working with moving bodies~\cite{Krishnan:2012jt}. 
-Since forking the original cuIBM, most of the discretization done in cuIBM has been rewritten for the new solvers but the code structure and i/o is largely the same. 
-This thesis will showcase cuIBM-FSI and the development of simulating two-dimensional, incompressible flow over a freely moving body using a GPU. 
+When there is only one node, such as in a workstation, data transfer times can prohibit efficient simultaneous use of both CPU and GPU. 
+cuIBM-FSI was forked from cuIBM~\cite{layton2011cuibm}, a GPU-based immersed boundary method solver primarily based on the method developed by Taira and Colonius~\cite{Taira:2007jl}. 
+cuIBM can not handle coupled fluid-structure interaction and produces numerical oscillations when working with moving bodies~\cite{Krishnan:2012jt}. 
+Improvements to cuIBM include adding fluid-structure interaction and suppressing numerical oscillations by implementing a new fluid solver based on the method presented by Luo et al.~\cite{Luo:2012gx}.
 
 Immersed boundary methods (IBMs) refer to a group of approaches used to simulate fluid flow over complex bodies, representing a body without using a body-fitted mesh. 
 These techniques are well-suited for simulating flow involving complex, moving bodies because they do not require re-meshing between time steps. 
-We have developed several immersed boundary method solvers for operating on, and investigating, graphics processing units (GPUs,) designed to handle incompressible fluid--structure interaction problems with rigid bodies. 
-
-Peskin~\cite{Peskin:1972gh} created the original immersed boundary method in the 1970s to model biological flows. 
-He used the immersed boundary method to more easily represent the moving, elastic artery walls. 
-Peskin's immersed boundary method adds a forcing term to the Navier--Stokes equations that represents the force a body would apply to the fluid if it was physically present. 
-This forcing term is modeled as a spring via $f=kx$, and a Dirac-delta function ensures the force only acts upon fluid nodes near the body. 
-Modeling the force as a spring worked well for Peskin's purposes but proved to have several shortcomings. 
-First, the order of accuracy heavily depends on how it and the delta function are handled. 
-Second, to apply the spring model to rigid bodies, a large spring coefficient must be used which inadvertently makes simulations stiff. 
-
-Immersed boundary method techniques have since evolved to be applicable to a wide range of problems, as reviewed by Mittal and Iaccarino~\cite{Mittal:2005ii} and more recently Sotiropoulos and Yang~\cite{Sotiropoulos:2014gv}. 
-The methods focused on in this work are all from a popular subgroup of immersed boundary method called direct forcing methods. 
-Mohd-Yusof~\cite{MohdYusof:1997wh} and Fadlun et al.~\cite{Fadlun:2000fl} developed two early versions of direct forcing. 
+We have implemented two immersed boundary method solvers for operating on, and investigating, graphics processing units (GPUs,) designed to handle incompressible fluid--structure interaction problems with rigid bodies. 
+Immersed boundary method techniques are applicable to a wide range of problems, as reviewed by Mittal and Iaccarino~\cite{Mittal:2005ii} and more recently Sotiropoulos and Yang~\cite{Sotiropoulos:2014gv}. 
+The methods focused on in this work are both from a popular subgroup of immersed boundary methods called direct forcing methods \cite{MohdYusof:1997wh, Fadlun:2000fl}. 
 Direct forcing methods interpolate for velocity at the nodes nearest to the body using the body velocity, eliminating the need to solve for a forcing term while simultaneously enforcing the no-slip condition.
-The early direct forcing methods did not include a method of modifying the Poisson equation for the presence of a body. 
-Not accounting for the body in the Poisson equation violates conservation of mass at the body. 
-Kim et al.~\cite{kim2001immersed} developed a direct forcing method that adds mass source or sink terms at nodes intersected by the boundary to satisfy the conservation equation. 
 
-Using the direct forcing method with a moving body can cause numerical oscillations~\cite{liao2010simulating,Luo:2012gx}.
-This effect can be manageable for preset motion, but with a freely moving body the solver will poorly predict body position, velocity, and forces. 
+Using a direct forcing method with a moving body can cause numerical oscillations~\cite{Sotiropoulos:2014gv,liao2010simulating,Luo:2012gx}.
+This effect can be manageable for preset motion, but with a freely moving body the solver will poorly predict body position, fluid values, and forces. 
 The numerical oscillations are caused by having different solution regimes in the domain, e.g., interpolation near the body and Navier--Stokes everywhere else. 
-Luo et al.~\cite{Luo:2012gx} deal with the numerical oscillations with a weighting function to transition between the two schemes, removing the discontinuity where the regimes transition. 
+Luo et al.~\cite{Luo:2012gx} suppress the numerical oscillations with a weighting function to transition between the two schemes, removing the discontinuity where the regimes transition. 
 
-The rest of thesis is structure as follows. 
-Chapter \ref{chapter:Numerical Methods} discusses the theory of direct forcing methods and their applicability to freely moving bodies. 
-Chapter \ref{chapter:Implementation} covers the discretization of these methods as well as the challenges, strategies, and implementation for the GPU. 
-Chapter \ref{chapter:Validation} shows the verification and validation of different aspects of the solver using five different test cases: lid-driven cavity flow, flow over an impulsively started cylinder, forced motion of a cylinder in static flow, forced motion of a cylinder in flow, and vortex-induced vibrations (VIV). 
-Chapter \ref{chapter:error} characterizes the order of accuracy and performance scaling for the immersed boundary method approaches considered. 
-The final chapter will summarize results, discuss issues encountered, and recommend future work.
-
-\chapter{Numerical methods}\label{chapter:Numerical Methods}
+\chapter{Numerical methods and Implementation}\label{chapter:Numerical Methods}
 The cuIBM-FSI is comprised of two methods based off the work of Luo et al.~\cite{Luo:2012gx}. 
 For now, it will suffice to refer to these as the external, and embedded methods and leave their explanations for later. 
 
@@ -128,14 +98,12 @@ Both methods start with the two-dimensional, incompressible form of the Navier--
 \nabla \cdot \textbf{u} &= 0, \label{eq:Continuity} \;.
 \end{align}
 where $\textbf{u}$ is velocity, $p$ is pressure, and $\nu$ is the (constant) kinematic viscosity.
-
-\section{Navier--Stokes fractional-step}\label{NM:NavierStokes}
-Both methods use the fractional-step approach~\cite{Perot1993} to solve Equations \eqref{eq:NavierStokes} and \eqref{eq:Continuity}, which breaks up the discretization of the Navier--Stokes equations into three sub-steps.
+The fractional-step approach~\cite{Perot1993} is used to solve Equations \eqref{eq:NavierStokes} and \eqref{eq:Continuity}, which breaks up the discretization of the Navier--Stokes equations into three sub-steps.
 In the first sub-step, the momentum equations are solved without pressure to  calculate an intermediate velocity:
 \begin{equation}\label{eq:Intermediate Velocity}
 \hat{\textbf{u}} - \frac{\Delta t}{2}L(\hat{\textbf{u}}) = \textbf{u}^n + \Delta t(\textbf{RHS}^n) \;,
 \end{equation}
-where $\hat{\textbf{u}}$ is the intermediate velocity, $\Delta t$ is the time step, $L$ is the Laplacian operator, and $\textbf{RHS}$ is the discretized advection and diffusion terms. 
+where $\hat{\textbf{u}}$ is the intermediate velocity, $\Delta t$ is the time step, $L$ is the Laplacian operator, and $\textbf{RHS}$ contains the discretized advection and diffusion terms. 
 The superscript $n$ represents the time step corresponding to time $t^n$. 
 In time, second-order Adams--Bashforth and Crank--Nicolson methods are used to discretize the advection and diffusion terms, respectively. 
 
@@ -149,7 +117,7 @@ Velocity is updated in the last sub step with:
 \textbf{u}^{n+1} = \hat{\textbf{u}} - \Delta t\nabla p^{n+1} \;.
 \end{equation}
 
-\section{Node identification}
+\section{Luo et al. method}
 To facilitate the discussion of immersed boundary methods, the nomenclature with regards to point identification will be explained here. 
 The nomenclature is mostly adopted from the work of Luo et al.~\cite{Luo:2012gx} and is similar to Mittal et al.~\cite{Mittal:2005ii}. 
 There are four types of nodes. 
@@ -171,14 +139,11 @@ Fluid nodes are solved with the Navier--Stokes equations.
 The treatment of solid nodes does not affect the solution, but it does affect the computational time and force calculation. 
 If solid nodes are solved, an arbitrary flow field will develop inside the body. 
 
-\section{Luo et al. method}
-Direct forcing methods suffer from numerical oscillation when the immersed body is moving~\cite{Sotiropoulos:2014gv, Mittal:2005ii, liao2010simulating}. 
-As the body moves, background nodes change how they calculate values. 
+As the body moves across the background grid, nodes change how they calculate values. 
 For example, Figure~\ref{fig:Temporal Discontinuity} depicts a bulk-fluid $u$ velocity node at time step $t^n$ becoming a hybrid node at time step $t^{n+1}$. 
 As the node transitions, the intermediate velocity will change from being calculated by Navier--Stokes (Equation~\eqref{eq:Intermediate Velocity}) to an interpolation (Equation~\eqref{eq:Interpolation}). 
 Both equations are correct representations for the intermediate velocity, but they have different errors associated with them, which cause the calculated velocities to be slightly different. 
-This discontinuous change in velocity is responsible for the numerical oscillations. 
-This effect happens whenever any node transitions, not just the intermediate $u$ velocity nodes.
+This discontinuous change is responsible for the numerical oscillations. 
 
 \begin{figure}[!htb]
     \centering
@@ -187,93 +152,9 @@ This effect happens whenever any node transitions, not just the intermediate $u$
     \label{fig:Temporal Discontinuity}
 \end{figure}
 
-In the method proposed by Luo et al.~\cite{Luo:2012gx}, hybrid node values are calculated via both Navier--Stokes and interpolation.
-Final hybrid node values are a weighted combination of both solutions where the weighting is designed to smooth the transition between solutions. 
+In the method proposed by Luo et al.~\cite{Luo:2012gx}, hybrid node values are calculated via both Navier--Stokes and interpolation, and a weighted combination smooths the transition between solutions. 
 When the hybrid node is close to the body, it will be dominated by the interpolated solution, while a hybrid node far from the body will be dominated by the Navier--Stokes solution. 
 
-\subsection{Field extrapolation to ghost nodes}
-\label{Sec:Field Extrapolation}
-
-To use the Navier--Stokes equations at hybrid nodes, velocity and pressure must be extrapolated across the body to the ghost nodes using boundary conditions such that the presence of the immersed body is imposed.
-If the slope of velocity between the hybrid node and the body is assumed to be linear, then the slope can be extrapolated inwards to the ghost node. 
-Figure \ref{Fig: Simple Interpolation} shows a simple example of this. 
-The ghost node is set such that the velocity is zero via linear interpolation between the ghost and hybrid nodes. 
-When the Navier--Stokes equations are then solved, the fluid velocity at the body surface will be calculated as the velocity of the body, mimicking the no-slip boundary condition. 
-\begin{figure}[!htb]
-	\centering
-	\includestandalone[width=0.5\linewidth]{basic_extrapolation}
-	\caption{A simple 1D, linear extrapolation example.}
-	\label{Fig: Simple Interpolation}
-\end{figure}
-Luo et al.~\cite{Luo:2012gx} extrapolated field values across the body using 2D bilinear interpolation. 
-Unlike the work of Luo et al.~\cite{Luo:2012gx}, which used a collocated grid, cuIBM-FSI uses a staggered grid, causing the extrapolation process to have three variations: one for pressure, one for $u$ velocity nodes, and one for $v$ velocity nodes. 
-Values are first interpolated for at an image point, represented by triangles in Figure~\ref{fig:Ghost node extrapolation}, outside the body using the surrounding field values and the boundary condition. 
-The 2D bilinear interpolation approximates the field between four nodes surrounding the image point with Equation~\eqref{eq:Interpolation}. 
-Each node surrounding the image point is used to set up a system of four equations to solve for the coefficients of Equation~\eqref{eq:Interpolation}, which can then be used to solve for the field values. 
-Some of the interpolation nodes will be moved to account for the presence of the body.
-In Figure~\ref{fig:Ghost node extrapolation} the bottom left corner of each interpolation region is moved to the body intercept point.
-\begin{figure}[!htb]
-	\centering
-	\includestandalone[width=0.5\linewidth]{GN_interp_figure}
-	\caption{A detailed schematic $u$ velocity extrapolation to ghost nodes.}
-	\label{fig:Ghost node extrapolation}
-\end{figure}
-
-The ghost nodes, indicated by solid squares, are projected onto the surface to find the body intercept, indicated by the thick open circle. 
-Body nodes used to track the body's position are not the same as the body intercept and the two are typically not coincident. 
-If the body has curvature, the body intercept will not fall exactly on the body due to its discrete representation of the body. 
-The line drawn between the body intercept and ghost node will be perpendicular to the tangent line at the body intercept, i.e., the ghost node is projected along the surface normal. 
-That line is then mirrored over the surface to find the image point, indicated by the solid triangle. 
-
-The rules to determine which values are used to interpolate for the image point are as follows: 
-If one of the four interpolation nodes is inside the body, as seen in the extrapolation for ghost node 1 in Figure~\ref{fig:Ghost node extrapolation}, then that node is moved to the body intercept and the boundary condition is used. 
-It is possible for multiple corners to be inside the body. 
-Any corner inside the body will always be a ghost node and have its own, corresponding body intercept. 
-All corners inside the body are moved to their corresponding body intercept such that there are always four corners in separate locations to use for the interpolation. 
-If none of the four field values are inside the body as seen in the extrapolation for ghost node 2, then the node closest to the body intercept is moved to the body intercept.
-To satisfy the no slip condition at the body, a Dirichlet boundary condition equal to the body velocity is used when extrapolating for velocity ghost nodes. 
-The pressure boundary condition is approximated by forcing the slope of pressure normal to the body surface, $\frac{dp}{dn}$, as constant using Neumann boundary conditions, Equation~\eqref{eq:Neumann}. 
-Using the relocated corners, a system of equations is set up to solve for the coefficients in Equation~\eqref{eq:Interpolation}. 
-Pressure nodes on the body use Equation~\eqref{eq:Neumann Node} in the system, which is simply the derivative of Equation~\eqref{eq:Interpolation}:
-\begin{align}
-\phi (x,y) = a_0 + a_1 x + a_2y + a_3 x y \label{eq:Interpolation} \\
-\phi (x,y) = a_1 + a_2 + a_3 (x+y) \label{eq:Neumann Node} \\
-\left. \frac{\partial p}{\partial \textbf{n}}\right|_{BI} = \left. -\rho \frac{D\textbf{u}}{Dt}\cdot \hat{\textbf{n}}\right|_{BI},
-\label{eq:Neumann}\;.
-\end{align}
-where $\phi$ is the variable being interpolated ($u$, $v$, or $p$); $a_0$, $a_1$, $a_2$ and $a_3$ are coefficients; $x$ and $y$ give the node location;
-$\rho$ is the density; $D\textbf{u}\left/Dt\right.$ is the material derivative; and $\textbf{n}$ is the unit vector normal to the body.
-Solving this system on the GPU requires direct inversions of the $4 \times 4$ matrices. 
-Once the $a$ coefficients have been found, the field value at the image point can be calculated with Equation~\eqref{eq:Interpolation} and extrapolated across the surface using Equation~\eqref{eq:Velocity Interpolation} for velocity or ~\eqref{eq:Pressure Interpolation} for pressure: 
-\begin{align}
-\textbf{u}_{GN} &= 2\textbf{u}_{BI} - \textbf{u}_{IP} \label{eq:Velocity Interpolation} \\
-p_{GN} &= p_{IP} - \Delta l \left. \frac{\partial p}{\partial \textbf{n}}\right|_{BI}, \; \label{eq:Pressure Interpolation}
-\end{align}
-where the subscripts GN, BI, and IP indicate ghost nodes, body intercept, and image point, and $\Delta l$ is the distance from ghost node to image point.
-
-\subsection{Interpolation to hybrid nodes}
-\label{Sec:Interpolation}
-
-Interpolating for the field value at the hybrid node is largely the same as interpolating for the ghost nodes' image point described previously. 
-The body intercept is once again found by projecting the hybrid node along the surface normal. 
-The image point is not used in the same way as the ghost node image point. 
-If a given body intercept is located at $(x_{BI},y_{BI})$ and its hybrid node is located at $(x_{BI}+\Delta x,y_{BI}+\Delta y)$, the corresponding image point is located at $(x_{BI}+2\Delta x,y_{BI}+2\Delta y)$ as shown in Figure~\ref{fig:Interpolate}. 
-In the hybrid node case, an image points purpose is locating the four interpolation nodes, one of which will always be the corresponding hybrid node. 
-The interpolation node coincident with the hybrid node is moved to the body intercept and the appropriate boundary condition for velocity or pressure is applied.
-Once Equation~\eqref{eq:Interpolation} is solved, the hybrid node is interpolated for.
-
-\begin{figure}[!htb]
-	\centering
-	\includestandalone[width=0.5\linewidth]{HN_interp_figure}
-	\caption{A detailed schematic of the hybrid node interpolation.}
-	\label{fig:Interpolate}
-\end{figure}
-
-\subsection{Weighting at hybrid nodes}
-\label{Sec:Weighting}
-
-Instead of the Dirac-delta style transition at the body of traditional direct-forcing methods, Luo et al.~\cite{Luo:2012gx} introduced a weighting factor to smooth transition values between solution regimes. 
-Its purpose is to dampen the numerical oscillations that result from the discontinuous regime switch. 
 The weighting scalar $\alpha$ is introduced to the solutions for intermediate velocity and the pressure:
 \begin{equation}\label{eq:Weight}
 \theta = \left(1-\alpha \right)\theta_{\text{Navier-Stokes}} + \alpha \theta_{\text{Interpolated}}, \;
@@ -300,9 +181,77 @@ If the hybrid node only has one neighbor, then $\Delta=0$ for the other directio
 	\label{fig:Weight}
 \end{figure}
 
-\chapter{Implementation and discretization}\label{chapter:Implementation}
-This chapter covers the discretization of the Navier--Stokes equations and all three immersed boundary methods. 
-It also covers various details required to implement or understand the methods including sparse matrices, GPU strategies, grid staggering, node identification, force calculation, and linear algebra. 
+\subsection{Field extrapolation to ghost nodes}
+\label{Sec:Field Extrapolation}
+
+To use the Navier--Stokes equations at hybrid nodes, velocity and pressure must be extrapolated across the body to the ghost nodes using boundary conditions such that the presence of the immersed body is imposed.
+No-slip is used for velocity and the pressure boundary condition is approximated by assuming a constant change in pressure along the surface normal.
+If the slope of velocity between the hybrid node and the body is assumed to be linear, then the slope can be extrapolated inwards to the ghost node. 
+
+Luo et al.~\cite{Luo:2012gx} extrapolated field values across the body using 2D bilinear interpolation. 
+cuIBM-FSI uses a staggered grid, causing the extrapolation process to have three variations.
+The process will be described and shown for $u$ velocity nodes but is the same for $v$ and pressure. 
+Values are first interpolated for at an image point, represented by triangles in Figure~\ref{fig:Ghost node extrapolation}, outside the body using the surrounding velocities and the boundary condition. 
+The 2D bilinear interpolation approximates the velocity between four nodes surrounding the image point with Equation~\eqref{eq:Interpolation}. 
+Each node surrounding the image point is used to set up a system of four equations to solve for the coefficients of Equation~\eqref{eq:Interpolation}, which can then be used to solve for the velocities. 
+Some of the interpolation nodes are moved to account for the presence of the body. 
+In Figure~\ref{fig:Ghost node extrapolation} the bottom left corner of each interpolation region is moved to the body intercept point.
+\begin{figure}[!htb]
+	\centering
+	\includestandalone[width=0.5\linewidth]{GN_interp_figure}
+	\caption{A detailed schematic $u$ velocity extrapolation to ghost nodes.}
+	\label{fig:Ghost node extrapolation}
+\end{figure}
+
+The ghost nodes, indicated by solid squares, are projected onto the surface to find the body intercept, indicated by the thick open circle. 
+Body nodes used to track the body's position are not the same as the body intercept and the two are typically not coincident. 
+If the body has curvature, the body intercept will not fall exactly on the body due to its discrete representation of the body. 
+The line drawn between the body intercept and ghost node will be perpendicular to the tangent line at the body intercept, i.e., the ghost node is projected along the surface normal. 
+That line is then mirrored over the surface to find the image point, indicated by the solid triangle. 
+
+The rules to determine which values are used to interpolate for the image point are as follows: 
+If one of the four interpolation nodes is inside the body, as seen in the extrapolation for ghost node 1 in Figure~\ref{fig:Ghost node extrapolation}, then that node is moved to the body intercept and the boundary condition is used. 
+It is possible for multiple corners to be inside the body. 
+Any corner inside the body will always be a ghost node and have its own, corresponding body intercept. 
+All corners inside the body are moved to their corresponding body intercept such that there are always four corners in separate locations to use for the interpolation. 
+If none of the four velocities are inside the body as seen in the extrapolation for ghost node 2, then the node closest to the body intercept is moved to the body intercept.
+To satisfy the no slip condition at the body, a Dirichlet boundary condition equal to the body velocity is used when extrapolating for velocity ghost nodes. 
+The pressure boundary condition is approximated by forcing the slope of pressure normal to the body surface, $\frac{dp}{dn}$, as constant using Neumann boundary conditions, Equation~\eqref{eq:Neumann}. 
+Using the relocated corners, a system of equations is set up to solve for the coefficients in Equation~\eqref{eq:Interpolation}. 
+Pressure nodes on the body use Equation~\eqref{eq:Neumann Node} in the system, which is simply the derivative of Equation~\eqref{eq:Interpolation}:
+\begin{align}
+\phi (x,y) = a_0 + a_1 x + a_2y + a_3 x y \label{eq:Interpolation} \\
+\phi (x,y) = a_1 + a_2 + a_3 (x+y) \label{eq:Neumann Node} \\
+\left. \frac{\partial p}{\partial \textbf{n}}\right|_{BI} = \left. -\rho \frac{D\textbf{u}}{Dt}\cdot \hat{\textbf{n}}\right|_{BI},
+\label{eq:Neumann}\;.
+\end{align}
+where $\phi$ is the variable being interpolated ($u$, $v$, or $p$); $a_0$, $a_1$, $a_2$ and $a_3$ are coefficients; $x$ and $y$ give the node location;
+$\rho$ is the density; $D\textbf{u}\left/Dt\right.$ is the material derivative; and $\textbf{n}$ is the unit vector normal to the body.
+Solving this system on the GPU requires direct inversions of the $4 \times 4$ matrices. 
+Once the $a$ coefficients have been found, the velocity at the image point can be calculated with Equation~\eqref{eq:Interpolation} and extrapolated across the surface using Equation~\eqref{eq:Velocity Interpolation} for velocity or ~\eqref{eq:Pressure Interpolation} for pressure: 
+\begin{align}
+\textbf{u}_{GN} &= 2\textbf{u}_{BI} - \textbf{u}_{IP} \label{eq:Velocity Interpolation} \\
+p_{GN} &= p_{IP} - \Delta l \left. \frac{\partial p}{\partial \textbf{n}}\right|_{BI}, \; \label{eq:Pressure Interpolation}
+\end{align}
+where the subscripts GN, BI, and IP indicate ghost nodes, body intercept, and image point, and $\Delta l$ is the distance from ghost node to image point.
+
+\subsection{Interpolation to hybrid nodes}
+\label{Sec:Interpolation}
+
+Interpolating for the field value at the hybrid node is largely the same as the ghost nodes procedure previously. 
+The body intercept is once again found by projecting the hybrid node along the surface normal. 
+The image point is not used in the same way as the ghost node image point. 
+If a given body intercept is located at $(x_{BI},y_{BI})$ and its hybrid node is located at $(x_{BI}+\Delta x,y_{BI}+\Delta y)$, the corresponding image point is located at $(x_{BI}+2\Delta x,y_{BI}+2\Delta y)$ as shown in Figure~\ref{fig:Interpolate}. 
+For a hybrid node, an image points purpose is only to locate the four interpolation nodes, one of which will always be the corresponding hybrid node. 
+The interpolation node coincident with the hybrid node is moved to the body intercept and the appropriate boundary condition for velocity or pressure is applied. 
+Once Equation~\eqref{eq:Interpolation} is solved, the hybrid node is interpolated for. 
+
+\begin{figure}[!htb]
+	\centering
+	\includestandalone[width=0.5\linewidth]{HN_interp_figure}
+	\caption{A detailed schematic of the hybrid node interpolation.}
+	\label{fig:Interpolate}
+\end{figure}
 
 \section{GPU implementation strategy}
 \label{GPU implementation strategy}
@@ -375,24 +324,10 @@ Given this, the control volume is generally kept in the same location as the bod
 Typically, a square with sides $L=10$ is used for a body of size $D=1$ that moves about $D$ away from center.
 
 If the solid and ghost nodes are not at steady state, Equation \eqref{eq:force calculation} will predict force poorly. 
-To circumvent this effect over multiple solvers, all nodes inside the body are excluded from the unsteady term. 
+To circumvent this effect, all nodes inside the body are excluded from the unsteady term. 
 
-\section{Navier--Stokes equations}
-\label{ID:Navier Stokes}
-
-The 2D, incompressible Navier--Stokes equations form the backbone of the immersed boundary method. 
-The fractional step method is used to solve these equations. 
-In the first step, Equation~\eqref{eq:Incompressible NavierStokes} drops the pressure term and is discretized to get an intermediate velocity~\cite{Perot1993}: 
-\begin{equation}
-\frac{\partial \textbf{u}}{\partial t} + \nabla ( \textbf{uu} ) = -\nabla p + \nu\nabla^{2}\textbf{u} \label{eq:Incompressible NavierStokes}
-\end{equation}
-In the second sub step, Equation~\eqref{eq:Poisson} is solved for pressure. 
-In the third sub step, the final velocity is updated. 
-This section goes over the discretization details of using fractional step for the standard Navier--Stokes equations. 
-Sections~\ref{sec:ID external}, and \ref{sec:ID embedded} cover the modifications required for the presence of an immersed boundary with the modified Fadlun, external, and embedded methods. 
-
-\section{Luo immersed boundary method}
-\label{sec:ID luo}
+\subsection{External method}
+\label{sec:ID external}
 cuIBM-FSI has two methods based off the approach given by Luo et al.~\cite{Luo:2012gx}. 
 The key difference between the two approaches is when the extrapolation and interpolation takes place. 
 The ``embedded'' method performs  interpolations, extrapolations, and weighting inside of the linear algebra solutions for the intermediate velocity and pressure. 
@@ -407,9 +342,6 @@ Two key implementation details distinguish cuIBM-FSI from Luo et al.~\cite{Luo:2
 Firstly, Luo et al.~did not use a staggered grid. 
 Secondly, Luo et al.~used Crank--Nicholson to discretize both the advection and diffusion terms, whereas cuIBM-FSI uses Adams--Bashforth for the advection terms. 
 
-\subsection{External method}
-\label{sec:ID external}
-The external interpolation method tries to resolve the time step in a non-iterative manner by calculating the interpolations, extrapolations and weighting outside of the linear algebra procedures. 
 Before a value is used by the fractional-step calculations, it is calculated at the hybrid and ghost nodes. 
 For example, the equation for intermediate velocity, Equations~\eqref{eq:Intermediate Velocity}, depends on the velocity field, so $u$ and $v$ are interpolated for at the hybrid nodes and extrapolated for at the ghost nodes before the right-hand side matrix is calculated. 
 The following sequence is set up such that a value is interpolated or extrapolated just before it is needed for the subsequent step:
@@ -433,8 +365,7 @@ The following sequence is set up such that a value is interpolated or extrapolat
 
 \subsection{Embedded interpolation method}
 \label{sec:ID embedded}
-In the embedded interpolation method, the Navier--Stokes and interpolated solutions for field values are calculated and weighted inside each linear-algebra solver. 
-In the intermediate velocity substep, the right hand side terms are first calculated as if no body was present. 
+In the intermediate velocity sub-step, the right hand side terms are first calculated as if no body was present. 
 The weighting coefficients and part of the interpolation can be calculated prior to the linear algebra because they are only dependent on the geometry, not the velocity or pressure. 
 The equations for bilinear interpolation, Equation \eqref{eq:Interpolation}, and interpolating to the ghost node, Equations \eqref{eq:Velocity Interpolation} or \eqref{eq:Pressure Interpolation}, are combined then rearranged to separate field value terms. 
 A similar operation happens for the hybrid nodes. 
