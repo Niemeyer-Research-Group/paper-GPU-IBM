@@ -50,6 +50,10 @@ nodes_figure.pdf
 poisson_discretization.pdf
 thesis.pdf
 
+## temp files
+*~
+
+
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
 *.bcf
