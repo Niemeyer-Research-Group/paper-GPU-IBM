@@ -519,6 +519,7 @@ In both figures, (a) is the external method and (b) is the embedded method.
 The embedded interpolation method suppresses the oscillations better than the external method. It also better predicts the maximum peak, which is about 15\% off of the experimental data.
 \begin{figure}[!htb]
 	\centering
+	\text{Drag over the first period, KC=5, Re=100}\par\medskip
 	\begin{subfigure}{0.4\textwidth}
 		\includegraphics[width=\linewidth]{staticexinit}
 		\caption{External interpolation method.}
@@ -534,6 +535,7 @@ The embedded interpolation method suppresses the oscillations better than the ex
 
 \begin{figure}[!htb]
 	\centering
+	\text{Drag over a steady state period, KC=5, Re=100}\par\medskip
 	\begin{subfigure}{0.4\textwidth}
 		\includegraphics[width=\linewidth]{staticexss}
 		\caption{External interpolation method.}
@@ -555,6 +557,7 @@ Re and KC can both be doubled by doubling the maximum velocity of the body which
 Once again, the embedded method suppresses oscillations better than the external method, but both do a good job at predicting the force. 
 \begin{figure}[!htb]
 	\centering
+	\text{Drag over the 14th period, KC=10, Re=200}\par\medskip
 	\begin{subfigure}{0.4\textwidth}
 		\includegraphics[width=\linewidth]{External_static_kc10}
 		\caption{External interpolation method.}
@@ -591,7 +594,8 @@ The uniform section is discretized into a $64 \times 64$ grid for the first row 
 The maximum CFL numbers by row are approximately \numlist{0.35; 0.35; 0.7; 1.0}.
 \begin{figure}[!htb]
 	\centering
-	\includegraphics[width=\textwidth]{cropped_oscflow}
+	\text{Drag vs time for an impulsively started oscillating cylinder}\par\medskip
+	\includegraphics[width=\textwidth]{osc_cylinder}
 	\caption{Drag force for flow over and in-line oscillating cylinder. The left column shows external interpolation and the right column shows the embedded interpolation. Rows one though four have maximum CFL \numlist{0.35; 0.35; 0.7; 1.0} and a middle grid spacing of \numlist{0.0625; 0.0313; 0.0313; 0.0313}.}
 	\label{fig:osccylinder}
 \end{figure}
@@ -677,6 +681,7 @@ All four configurations used to solve for vortex-induced vibration (embedded/ext
 The main difference between the external and embedded method is the wall-clock time taken to run each, with the embedded method taking nearly an order of magnitude more than the external method.
 \begin{figure}
 	\centering
+	\text{Maximum amplitude vs reduced velocity for vortex-induced vibration}\par\medskip
 	\includegraphics[width=\textwidth]{VIV_combine}
 	\caption{Maximum cylinder amplitude in the lock-in region as computed with the external and embedded methods using loose and strong coupling.}
 	\label{fig:viv_combine}
@@ -705,21 +710,22 @@ The external method has the lower error norms across the board.
 
 \begin{figure}[H]
 	\centering
-	\begin{subfigure}{0.55\textwidth}
+	\text{Error norms vs grid size for an impulsively started cylinder}\par\medskip
+	\begin{subfigure}{0.5\textwidth}
 		\includegraphics[width=\linewidth]{L1_error_norm}
 		\caption{L1 error norm.}
 	\end{subfigure}
 	
-	\begin{subfigure}{0.55\textwidth}
+	\begin{subfigure}{0.5\textwidth}
 		\includegraphics[width=\linewidth]{L2_error_norm}
 		\caption{L2 error norm.}
 	\end{subfigure}
 	
-	\begin{subfigure}{0.55\textwidth}
+	\begin{subfigure}{0.5\textwidth}
 		\includegraphics[width=\linewidth]{Linf_error_norm}
-		\caption{Linf error norm.}
+		\caption{L$_\infty$ error norm.}
 	\end{subfigure}
-	\caption{Impulsively started cylinder error norms.}
+	\caption{$L_1$, $L_2$, and $L_\infty$ error norms for an impulsively started cylinder.}
 	\label{fig:error norm}
 \end{figure}
 
@@ -730,6 +736,7 @@ Interestingly, the two methods have nearly the same order of accuracy even thoug
 
 \begin{figure}[!htb]
 	\centering
+	\text{Average error vs uniform area grid spaceing for an impulsively started oscillating cylinder}\par\medskip
 	\includegraphics[width=0.6\linewidth]{error_oscflow}
 	\caption{Error plotted against grid spacing shows the two solvers' order of accuracy for an oscillating cylinder in flow.}
 	\label{fig:oscerror}
@@ -743,6 +750,7 @@ The NVIDIA K20 is a dedicated computational graphics card with nearly 2500 proce
 Figure~\ref{fig:cyperf} shows the performance of an immobile impulsively started cylinder. 
 \begin{figure}[!htb]
 	\centering
+	\text{Run time vs grid size for an impulsively started cylinder}\par\medskip
 	\includegraphics[width=0.6\textwidth]{cylinder_performance}
 	\caption{Impulsively started cylinder performance.}
 	\label{fig:cyperf}
@@ -773,6 +781,7 @@ As cell count increases, the parallel portions become larger resulting in a more
 %\todo{need (seconds) on y axis}
 \begin{figure}[!htb]
 	\centering
+	\text{Run time vs grid size for an impulsively started oscillating cylinder}\par\medskip
 	\includegraphics[width=0.6\linewidth]{osc_performance}
 	\caption{Performace for flow over an in-line oscillating cylinder.}
 	\label{fig:oscperf}
@@ -788,6 +797,7 @@ Halving the grid size causes the embedded method's computational time to increas
 %\todo{plots are all grouped here for some weird reason} 
 \begin{figure}[!htb]
 	\centering
+	\text{Run time vs uniform area grid spacing for an impulsively started oscillating cylinder}\par\medskip
 	\includegraphics[width=0.6\linewidth]{performance_oscflow2}
 	\caption{Computational time for flow over an in-line oscillating cylinder. The total cell count and uniform grid section size are held constant.}
 	\label{fig:performance2}
