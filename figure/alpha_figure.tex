@@ -25,10 +25,20 @@
 \draw [black] (1.49,-0.71) circle (3pt);                                                                %ghost node 2 body intercept
 \draw [black, ultra thin] (1.48, -0.72) -- (1,-1);                                                      %GN2 line
 \draw [black] (1.4,-1) circle (0pt) node[anchor=north] {$\Delta_2$};                                    %ghost node 2 body intercept label
-\draw [black] (0,-1) circle (0pt) node[anchor=south] {$\Delta x$};                                      %dx label
-\draw [black] (-1,0) circle (0pt) node[anchor=west] {$\Delta y$};                                       %dy label
-\draw [black] (-2,-2) circle (0pt) node[anchor=north east] {Solid};                                     %Solid label
-\draw [black] (2,2) circle (0pt) node[anchor=south west] {Fluid};                                       %Fluid label
+\draw [black] (0,-2) circle (0pt) node[anchor=north] {$\Delta x$};                                      %dx label
+\draw [lightgray, thin, dashed] (-1,-2) -- (1,-2);
+\draw [lightgray, thin] (-1,-2) -- (-1,-2.25);
+\draw [lightgray, thin] (1,-2) -- (1,-2.25);
+
+\draw [black] (-2,0) circle (0pt) node[anchor=east] {$\Delta y$};                                       %dy label
+\draw [lightgray, thin, dashed] (-2,1) -- (-2,-1);
+\draw [lightgray, thin] (-1.75,1) -- (-2.25,1);
+\draw [lightgray, thin] (-1.75,-1) -- (-2.25,-1);
+
+
+
+\draw [black] (-2,-2) circle (0pt) node[anchor=north east] {Solid region};                                     %Solid label
+\draw [black] (2,2) circle (0pt) node[anchor=south west] {Fluid region};                                       %Fluid label
 
 
 \end{tikzpicture}
