@@ -1,6 +1,6 @@
 # GPU Based Fluid Structure Interaction using Immersed Boundary Methods
 
-## Authors Christopher S Minar and Kyle E Niemeyer
+## Authors: Christopher S Minar and Kyle E Niemeyer
 
 ## Abstract
 Engineering applications often require fast, accurate solutions of fluid flow around freely moving bodies. 
