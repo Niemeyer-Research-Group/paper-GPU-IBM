@@ -10,12 +10,12 @@ This work modifies direct-forcing immersed boundary methods to model fluid-struc
 I performed solver verification using lid-driven cavity flow, impulsively started flow over a cylinder, flow over a forced oscillating cylinder and vortex-induced vibration.
   
 ## Table of contents:  
-1. Introlduction  
-2. Numerical Methods  
-3. Implementization and Discretization
-4. Verification and Validation  
-5. Solver Characterization  
-6. Summary  
+1. Introduction  
+2. Numerical methods  
+3. Implementization and discretization
+4. Verification and validation  
+5. Solver characterization  
+6. Conclusions  
 
 ## Acknowledgements:  
 We gratefully acknowledge the support of NVIDIA Corporation with the donation of the Tesla K20 GPU used for this research.
