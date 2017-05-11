@@ -1,25 +1,26 @@
 #!/usr/bin/env python
 #This script makes the plot for all four VIVs results on the same plot
-#import csv
-#import argparse
-import numpy as np
-from numpy import genfromtxt
-import matplotlib
-matplotlib.use('Agg')
+
+import sys
+import os.path
+import numpy
 from matplotlib import pyplot as plt
-from scipy import signal
-#import os
-#import os.path
-#import sys
+from matplotlib.backends.backend_pdf import PdfPages
+import brewer2mpl
 
 def main():
+
+    plt.ion()
+
+    home_dir = os.path.join(sys.path[0], '../../')
+    home_dir = os.path.realpath(home_dir)
+    d = os.path.join(home_dir, 'figures')
 
     print("-"*80)
     print("Making validaiton plot for an oscillating cylinder in flow.")
     print("-"*80)
-    caseFolder = '/scratch/src/cuIBM/validation/osc/VIV'
-    name = '/scratch/src/cuIBM/validation/osc/VIV/Ured'
-    fileid = '/midPosition'
+
+    colors = brewer2mpl.get_map('Dark2', 'qualitative', 6).mpl_colors
 
     ys = [0.0714, 0.5616, 0.5234, 0.451, 0.371, 0.0696]
     yc = [0.0714, 0.5286, 0.4894, 0.435, 0.381, 0.0696]
@@ -29,18 +30,24 @@ def main():
     ex_sc = [0.0742857142857144, 0.5599999999999999, 0.5069387755102042, 0.4342857142857142, 0.35346938775510206, 0.10448979591836749] #data output from external strong coupling
     x = [3, 4, 5, 6, 7, 8]
 
-    plt.plot(x, ys, 'sk', label='Ann & Kallindens (2006)')
-    plt.plot(x, yc, 'ok', label='Borazjani et al. (2008)')
-    plt.plot(x, ex_lc, '^b', label='External loose')
-    plt.plot(x, ex_sc, 'db', label='External strong')
-    plt.plot(x, em_lc, 'xg', label='Embedded loose')
-    plt.plot(x, em_sc, '+g', label='Embedded strong')
-    plt.xlabel('Ured')
-    plt.ylabel('Maximum Amplitude')
+    labels = ['Ann & Kallindens (2006)', 'Borazjani et al. (2008)', 'External, loose',
+              'External, strong', 'Embedded, loose', 'Embedded, strong'
+              ]
+    markers = ['s', 'o', '^', 'd', 'x', '+']
+
+    for idx, data in enumerate([ys, yc, ex_lc, ex_sc, em_lc, em_sc]):
+        plt.plot(x, data, marker=markers[idx], color=colors[idx], label=labels[idx], markersize=8, linestyle='')
+
+    plt.xlabel(r'$U_{\mathrm{red}}$')
+    plt.ylabel('Maximum amplitude')
     plt.xlim([2, 9])
     plt.ylim([0, 0.6])
     plt.legend(loc='best', numpoints=1)
-    plt.savefig('VIV_combine.pdf')
+
+    pp = PdfPages(os.path.join(d, 'VIV_combine.pdf'))
+    pp.savefig()
+    pp.close()
+
     plt.clf()
 
 #run

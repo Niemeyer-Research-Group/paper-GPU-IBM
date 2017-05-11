@@ -535,7 +535,11 @@ Finally, $\hat{\textbf{u}}$ is calculated using CUSP.
 
 The implementation of the embedded Poisson equation is the same as outlined above.
 
-\section{Verification and validation}\label{chapter:Validation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Verification and validation}
+\label{chapter:Validation}
+
 Both methods are tested using several well studies simulations.
 The first simulation tests the solvers ability to handle a body with prescribed motion.
 In this test, a cylinder has a set sinusoidal motion in an initially stagnant flow.
@@ -543,16 +547,20 @@ The second simulation features an impulsively started cylinder, with a set sinus
 Both of these tests look at the force calculation for a moving body and help quantify the numerical oscillation caused by direct forcing.
 The last simulation is called vortex-induced vibration (VIV) and tests the solvers' ability to accurately predict body location, velocity, and force when the body motion is not prescribed.
 
-\subsection{In-line oscillating cylinder driven flow}
+\subsection{Flow driven by in-line oscillating cylinder}
 \label{sec:Oscillating Cylinder in no Flow}
-An in-line oscillating cylinder with initial velocities and Dirichlet boundary conditions of zero is used by Liao et al.~\cite{liao2010simulating} to demonstrate numerical oscillation suppression.
-The results of Liao et al.~and cuIBM-FSI are validated against the experimental data of D\"{u}tsch et al.~\cite{dutsch1998low}.
-The equations that govern movement, \eqref{eq:cylinder position2} and \eqref{eq:cylinder velocity2}, are the same form as above but with a period, maximum velocity, and position of 1, 1, and $1/2\pi$:
+
+Liao et al.~\cite{liao2010simulating} used an in-line oscillating cylinder with initial velocities
+and Dirichlet boundary conditions of zero to demonstrate numerical oscillation suppression.
+Here, we validate the results of Liao et al.~\cite{liao2010simulating} and cuIBM-FSI
+against the experimental data of D\"{u}tsch et al.~\cite{dutsch1998low}.
+The equations that govern cylinder motion, \eqref{eq:cylinder position2} and \eqref{eq:cylinder velocity2}, are
+the same form as above but with a period, maximum velocity, and position of 1, 1, and $1/2\pi$:
 \begin{align}
 x(t) &= \frac{-1}{2\pi} \sin(2\pi t) \quad \text{and} \label{eq:cylinder position2}\\
 u(t) &= -\cos(2\pi t) \;. \label{eq:cylinder velocity2}
 \end{align}
-The diameter matches that of the Liao et al.~\cite{liao2010simulating} simulation, 0.2.
+The cylinder diameter, 0.2, matches that of Liao et al.~\cite{liao2010simulating}.
 These values give the simulation a Reynolds number of 100 and Keulegan--Carpenter (KC) number of 5.
 The KC number is a non-dimensional quantity representing the importance of drag and
 inertial forces on an oscillating body, calculated with Equation~\eqref{eq:KC}:
@@ -560,8 +568,8 @@ inertial forces on an oscillating body, calculated with Equation~\eqref{eq:KC}:
 \text{KC} = \frac{U_\text{max}}{fD} \label{eq:KC} \;,
 \end{equation}
 where $f$ is the oscillation frequency.
-The domain has a uniform section with grid spacing 0.005 from $(-0.4,-0.2)$ to $(0.4,0.2)$
-ranging from $\pm$ 5.5 in $x$ to $\pm$ 3.5 in $y$.\todo{this is not clear}{}
+The domain spans $\pm$ 5.5 in $x$ and $\pm$ 3.5 in $y$, and has a fine, uniform grid
+spacing of $\Delta x = \Delta y = 0.005$ from $(-0.4,-0.2)$ to $(0.4,0.2)$.
 Figure \ref{fig:staticInit} shows the force during the first period versus the steady-state
 experimental data of D\"{u}tsch et al.~\cite{dutsch1998low}.
 Figure \ref{fig:staticSteady} shows the steady state drag.
@@ -746,46 +754,58 @@ than the external method.
 \section{Solver characterization}
 \label{chapter:error}
 
-This section will evaluate the methods used in terms of error norms, order of accuracy, and performance scaling.
+This section will evaluate the methods used in terms of error norms, order of accuracy,
+and performance scaling.
 
-\subsection{Impulsively started cylinder flow error norms}
-Figure~\ref{fig:error norm} shows the $L_1$, $L_2$, and $L_\infty$ error norms for the both immersed boundary methods tested using an immobile cylinder.
-The $L_1$, $L_2$ and $L_\infty$ error norms are calculated using Equations~\eqref{eq:L1 error norm}, \eqref{eq:L2 error norm}, \eqref{eq:Linf error norm}, respectively.
+\todo[inline]{move description of methods here?}
+
+\subsection{Error norms for impulsively started cylinder flow}
+
+Figure~\ref{fig:error norm} shows the $L_1$, $L_2$, and $L_\infty$ error norms for
+the both immersed boundary methods tested using an immobile cylinder.
+The $L_1$, $L_2$, and $L_\infty$ error norms are calculated using
 \begin{align}
-L_1 &= \sum_{i} \left|u_{\text{fine}, i}-u_{\text{coarse},i}\right| \label{eq:L1 error norm} \\
-L_2 &= \sqrt{\sum_{i} \left(u_{\text{fine}, i}-u_{\text{coarse},i}\right)^2} \label{eq:L2 error norm} \\
-L_{\infty} &= \text{max}_i\left(u_{\text{fine}, i}-u_{\text{coarse},i}\right) .\ \label{eq:Linf error norm}
+    L_1 &= \sum_{i} \left|u_{\text{fine}, i}-u_{\text{coarse},i}\right| \;, \label{eq:L1 error norm} \\
+    L_2 &= \sqrt{\sum_{i} \left(u_{\text{fine}, i}-u_{\text{coarse},i}\right)^2} \;, \text{ and} \label{eq:L2 error norm} \\
+    L_{\infty} &= \text{max}_i\left(u_{\text{fine}, i}-u_{\text{coarse},i}\right) \;, \label{eq:Linf error norm}
 \end{align}
-
+where $ u_{\text{fine}, i} $ and $u_{\text{coarse}, i}$ are the $x$ velocities at the $i$th grid point
+for the finest grid and a particular coarse grid, respectively.\todo{add information about grid sizes considered}{}
 The $L_1$ error norm is the sum of all the error in every cell.
-$L_2$ is the square root of the sum of the squared errors.
-The error in each cell is less than one so the $L_2$ error norm is several orders of magnitude lower than the $L_1$.
-$L_\infty$ is the most intuitive of the error norms: it is simply the largest difference between the fine and coarse grids.
-An $L_\infty$ value of 0.2 obtained from the coarse grids is mediocre because the maximum velocity is around one and a half, giving about a 13\% relative error compared to 3\% for the fine grids.
-As the grid size decreases and the cell count increases, the most accurate solver will have the smallest slope.
-The external method has the lower error norms across the board.
+$L_2$ is the square root of the sum of the squared errors. The error in each cell is less than one,
+so the $L_2$ error norm is several orders of magnitude lower than the $L_1$.
+$L_\infty$ is the most intuitive of the error norms: the largest difference between the
+fine and coarse grids.
+The coarsest grid produces an $L_\infty$ value of 0.2, corresponding to a maximum velocity
+around one and a half, for a relative error of about \SI{13}{\percent} (compared with
+\SI{3}{\percent} for the finest grid. As the grid size decreases and the cell count
+increases, the most accurate solver will have the smallest slope.\todo{clarify}{}
+The external method exhibits lower error norms for all measures.
 
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}{0.5\textwidth}
-		\includegraphics[width=\linewidth]{L1_error_norm}
-		\caption{L1 error norm.}
-	\end{subfigure}
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.5\textwidth}
+        \includegraphics[width=\linewidth]{L1_error_norm}
+        \caption{$L_1$ error norm.}
+    \end{subfigure}
 
-	\begin{subfigure}{0.5\textwidth}
-		\includegraphics[width=\linewidth]{L2_error_norm}
-		\caption{L2 error norm.}
-	\end{subfigure}
+    \begin{subfigure}{0.5\textwidth}
+        \includegraphics[width=\linewidth]{L2_error_norm}
+        \caption{$L_2$ error norm.}
+    \end{subfigure}
 
-	\begin{subfigure}{0.5\textwidth}
-		\includegraphics[width=\linewidth]{Linf_error_norm}
-		\caption{L$_\infty$ error norm.}
-	\end{subfigure}
-	\caption{$L_1$, $L_2$, and $L_\infty$ error norms for an impulsively started cylinder.}
-	\label{fig:error norm}
+    \begin{subfigure}{0.5\textwidth}
+        \includegraphics[width=\linewidth]{Linf_error_norm}
+        \caption{L$_\infty$ error norm.}
+    \end{subfigure}
+    \caption{$L_1$, $L_2$, and $L_\infty$ error norms for impulsively started cylinder simulations,
+    using the external and embedded interpolation methods.
+    }
+    \label{fig:error norm}
 \end{figure}
 
 \subsection{Impulsively started oscillating cylinder order of accuracy}
+
 The embedded and external methods also have their order of accuracy tested using flow over an in-line oscillating cylinder.
 Figure~\ref{fig:oscerror} shows the error with changing grid spacing for the external and embedded methods.
 Interestingly, the two methods have nearly the same order of accuracy even though the external method is known to have higher amplitude oscillations (as shown in Section \ref{sec:osccylinder}).
