@@ -155,7 +155,7 @@ In the Pacific, the sea floor is too deep to make use of the sea bed.
 Instead, some wave energy converters use a large underwater disk called a ``heave plate''.
 The purpose of a heave plate is to make as much drag as possible when the buoy tries to pull it up through the water, creating an relatively immobile base substitute for an anchor.
 To make wave energy converters cost competitive with established renewable and fossil fuels, they must be optimized to be as efficient as possible.
-This paper will discuss the development and characterization cuIBM-FSI~\cite{cuIBM-FSI:v0.1}, a fast fluid flow solver for handling fluid structure interaction with complex bodies.
+This paper will discuss the development and characterization cuIBM-FSI~\cite{cuIBM-FSI:v0.1}, a fast fluid-flow solver for handling fluid structure interaction with complex bodies.
 
 Graphics processing units (GPUs) have a large theoretical performance for highly parallel problems.
 The extensive linear algebra required in computational fluid dynamics presents an enticing opportunity for GPUs.
@@ -164,7 +164,7 @@ To achieve a speedup over commercial solvers, cuIBM-FSI performs most calculatio
 A lot of recent work has focused on writing algorithms to work on GPU-accelerated hybrid clusters, or traditional supercomputers with GPUs available at each node~\cite{xu2014collaborating,liu2016hybrid,norouzi2016new}.
 This is sometimes referred to as GPU acceleration.
 When there is only one node, such as in a workstation, data transfer times can prohibit efficient simultaneous use of both CPU and GPU.
-cuIBM-FSI was forked from cuIBM~\cite{layton2011cuibm}, a GPU-based immersed boundary solver primarily based on the method developed by Taira and Colonius~\cite{Taira:2007jl}.
+cuIBM-FSI was forked from cuIBM~\cite{layton2011cuibm}\todo{update cuIBM ref to JOSS paper}{}, a GPU-based immersed boundary solver primarily based on the method developed by Taira and Colonius~\cite{Taira:2007jl}.
 cuIBM can not handle coupled fluid-structure interaction and produces numerical oscillations when working with moving bodies~\cite{Krishnan:2012jt}.
 Improvements to cuIBM include adding fluid-structure interaction and suppressing numerical oscillations by implementing a new fluid solver based on the method presented by Luo et al.~\cite{Luo:2012gx}.
 
