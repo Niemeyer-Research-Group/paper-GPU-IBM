@@ -147,7 +147,9 @@
 %% \linenumbers
 
 %% main text
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
+%
 Wave energy converters are seafaring devices that harvest waves to create electrical energy.
 In the Atlantic, the sea floor can be shallow enough to use pylons to support devices on the surface.
 A wave energy converter can use the relative motion of a buoy rolling in the waves and the anchored pylon to generate electricity.
@@ -161,10 +163,10 @@ Graphics processing units (GPUs) have a large theoretical performance for highly
 The extensive linear algebra required in computational fluid dynamics presents an enticing opportunity for GPUs.
 To achieve a speedup over commercial solvers, cuIBM-FSI performs most calculations using GPUs.
 
-A lot of recent work has focused on writing algorithms to work on GPU-accelerated hybrid clusters, or traditional supercomputers with GPUs available at each node~\cite{xu2014collaborating,liu2016hybrid,norouzi2016new}.
+Much recent work has focused on writing algorithms to work on GPU-accelerated hybrid clusters, or traditional supercomputers with GPUs available at each node~\cite{xu2014collaborating,liu2016hybrid,norouzi2016new}.
 This is sometimes referred to as GPU acceleration.
 When there is only one node, such as in a workstation, data transfer times can prohibit efficient simultaneous use of both CPU and GPU.
-cuIBM-FSI was forked from cuIBM~\cite{layton2011cuibm}\todo{update cuIBM ref to JOSS paper}{}, a GPU-based immersed boundary solver primarily based on the method developed by Taira and Colonius~\cite{Taira:2007jl}.
+cuIBM-FSI was forked from cuIBM~\cite{layton2011cuibm,Krishnan2017}, a GPU-based immersed boundary solver primarily based on the method developed by Taira and Colonius~\cite{Taira:2007jl}.
 cuIBM can not handle coupled fluid-structure interaction and produces numerical oscillations when working with moving bodies~\cite{Krishnan:2012jt}.
 Improvements to cuIBM include adding fluid-structure interaction and suppressing numerical oscillations by implementing a new fluid solver based on the method presented by Luo et al.~\cite{Luo:2012gx}.
 
@@ -177,105 +179,133 @@ Direct forcing methods interpolate for velocity at the nodes nearest to the body
 
 Using a direct forcing method with a moving body can cause numerical oscillations~\cite{Sotiropoulos:2014gv,liao2010simulating,Luo:2012gx}.
 This effect is manageable for preset motion, but with a freely moving body the solver can poorly predict body position, fluid values, and forces.
-The numerical oscillations are caused by having different solution regimes in the domain, e.g., interpolation near the body and Navier--Stokes everywhere else.
+The numerical oscillations are caused by having different solution regimes in the domain, e.g., interpolate near the body and solve Navier--Stokes elsewhere.
 Luo et al.~\cite{Luo:2012gx} suppress the numerical oscillations with a weighting function to transition between the two schemes, removing the discontinuity where the regimes transition.
 
-\section{Numerical methods and Implementation}\label{chapter:Numerical Methods}
-The cuIBM-FSI is comprised of two methods based off the work of Luo et al.~\cite{Luo:2012gx}.
-For now, it will suffice to refer to these as the external, and embedded methods, leaving their explanations for later.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Numerical methods and implementation}
+\label{sec:methods}
+%
+The cuIBM-FSI solver comprises two immersed boundary methods based on the work of Luo et al.~\cite{Luo:2012gx}.
+For now, we refer to these as the external and embedded methods, and will explain their differences later.
+Unlike the method of Luo et al., cuIBM-FSI uses a typical staggered grid for velocity and pressure.
 
-Both methods start with the two-dimensional, incompressible form of the Navier--Stokes momentum and mass continuity equations:
+Both methods start with the two-dimensional, incompressible form of the continuity and Navier--Stokes momentum equations:
 \begin{align}
-\frac{\partial \textbf{u}}{\partial t} + \nabla ( \textbf{uu} ) &= -\nabla p + \nu\nabla^{2}\textbf{u} \label{eq:NavierStokes} \\
-\nabla \cdot \textbf{u} &= 0, \label{eq:Continuity} \;.
+\nabla \cdot \textbf{u} &= 0 \quad \text{and}  \label{eq:Continuity} \\
+\frac{\partial \textbf{u}}{\partial t} + \nabla ( \textbf{uu} ) &= -\nabla p + \nu\nabla^{2}\textbf{u} \label{eq:NavierStokes} \;,
 \end{align}
 where $\textbf{u}$ is velocity, $p$ is pressure, and $\nu$ is the (constant) kinematic viscosity.
-The fractional-step approach~\cite{Perot1993} is used to solve Equations \eqref{eq:NavierStokes} and \eqref{eq:Continuity}, which breaks up the discretization of the Navier--Stokes equations into three sub-steps.
-In the first sub-step, the momentum equations are solved without pressure to  calculate an intermediate velocity:
-\begin{equation}\label{eq:Intermediate Velocity}
+We solve Eqs.~\eqref{eq:NavierStokes} and \eqref{eq:Continuity} with the fractional-step approach~\cite{Perot1993}, which breaks up the discretization of the Navier--Stokes equations into three sub-steps.
+The first sub-step solves the momentum equations without pressure to calculate an intermediate velocity:
+\begin{equation}
 \hat{\textbf{u}} - \frac{\Delta t}{2}L(\hat{\textbf{u}}) = \textbf{u}^n + \Delta t(\textbf{RHS}^n) \;,
+\label{eq:Intermediate Velocity}
 \end{equation}
 where $\hat{\textbf{u}}$ is the intermediate velocity, $\Delta t$ is the time step, $L$ is the Laplacian operator, and $\textbf{RHS}$ contains the discretized advection and diffusion terms.
 The superscript $n$ represents the current time step, corresponding to time $t^n$.
-In time, second-order Adams--Bashforth and Crank--Nicolson methods are used to discretize the advection and diffusion terms, respectively.
+We advance the advection and diffusion terms in time with second-order Adams--Bashforth and Crank--Nicolson methods, respectively.
 
-In the second sub step, the continuity equation is imposed to approximate the pressure, $p$, resulting in a Poisson equation:
+The second sub-step imposes the continuity equation to approximate pressure, $p$, resulting in a Poisson equation:
 \begin{equation}\label{eq:Poisson}
 \nabla^2p^{n+1} = - \frac{\nabla\hat{\textbf{u}}}{\Delta t} \;,
 \end{equation}
 \newline where $n+1$ indicates the value at the next time step.
-Velocity is updated in the last sub step with:
+The last sub-step updates velocity using
 \begin{equation}\label{eq:Projection}
 \textbf{u}^{n+1} = \hat{\textbf{u}} - \Delta t\nabla p^{n+1} \;.
 \end{equation}
 
-\subsection{GPU implementation strategy}
-\label{GPU implementation strategy}
-cuIBM-FSI is developed for full GPU operation to improve performance relative to CPU-based algorithms or partial GPU-accelerated approaches which involve significant CPU-GPU communication.
-To this end, several overarching strategies have been implemented.
 
-First, all calculations are performed on the GPU, and all data is stored on the GPU.
-Although efforts are typically taken to avoid thread divergence when writing code for a GPU, it was found to be favorable to write kernels with occasionally poor thread-parallel performance, i.e., kernels with significant divergence, rather than copying data to the host to do calculations to reduce divergence.
-In the cases tested, transferring data back and forth took significantly more time than would be saved by running some operations on a CPU.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{GPU implementation}
+\label{sec:GPU-implementation}
+%
+cuIBM-FSI is written in CUDA C\texttt{++} and designed to operate on NVIDIA GPUs; it is based on
+a fork of the original cuIBM of Krishnan et al.~\cite{Krishnan2017}, and released
+under the same permissive MIT license.
+cuIBM-FSI relies on the Cusp library~\cite{Cusp} for solving the (sparse) linear systems associated with the intermediate velocity and pressure-Poission equations, \eqref{eq:Intermediate Velocity} and \eqref{eq:Poisson} respectively.
+cuIBM-FSI stores sparse matrices in the Cusp coordinate (COO) format.
+Both linear system solutions use a biconjugate gradient stabilized (BiCGSTAB) method,
+with preconditioners to improve performance. We selected a diagonal preconditioner
+for the intermediate velocity and the algebraic multigrid preconditioner based on
+smoothed aggregation for the pressure-Poisson solve.
+Multigrid methods perform several iterations of BiCGSTAB (or any iterative solver)
+on the full grid, then transfer the solution to a coarser grid. This process is
+repeated until the grid is very coarse, and then the solution is rebuilt on
+increasingly finer grids until a solution has been obtained for the full grid.
+%Approximating the inverse of the matrix using the coarser grids saves computational time.
 
-Secondly, kernel performance is evaluated compared to the Poisson equation.
-Increasing the parallel performance of kernels has little effect on the overall solver performance, because solving the Poisson equation typically takes more than \SI{90}{\percent} of the total computational time.
-In addition to non-Poisson kernels being a low overall portion of the run time, the effect of the divergence turns out to be small.
-For most kernels, the divergence only occurs in cells near the body which is generally a low percentage of the overall cell count.
+We developed cuIBM-FSI for full GPU operation to improve performance over CPU-based algorithms or partial GPU-accelerated approaches which involve significant CPU-GPU communication.
+To this end, we implemented several overarching strategies.
 
-The third strategy comes from Layton et al.~\cite{layton2011cuibm}.
-When using the CUSP library to perform the multigrid method, creating the preconditioner can take as much time as solving the Poisson equation.
-In a moving-body simulation, the preconditioner is normally recalculated each time step, but Layton et al.~\cite{layton2011cuibm} found it possible to skip some time steps without loss of fidelity.
-Here, preconditioner is recalculated only if the solution of the previous time step required more than 100 iterations.
-The external method does not need the preconditioner to be remade, even when the body is moving, because each node always depends on the same neighbors regardless of the position of the body.
+First, cuIBM-FSI performs all calculations on the GPU, and GPU memory stores all data.
+Although others typically try specific strategies to avoid thread divergence when writing code for GPUs, we found it favorable to write kernels with occasionally poor thread-parallel performance (i.e., kernels with significant thread divergence) rather than attempting to reduce divergence by transferring data to the host CPU for some operations.
+In our tests, transferring data between the CPU and GPU took significantly more time than would be saved by running some operations on a CPU.
 
-\subsection{Luo et al. method}
-To facilitate the discussion of immersed boundary methods, the nomenclature with regards to point identification will be explained here.
+We attribute this observation to the fact that solution of the Poisson equation dominates the computational cost.
+Thus, we evaluated any potential changes in GPU kernel performance compared with that.
+Increasing the parallel performance of kernels by eliminating some thread divergence improved overall solver performance by small factors, because solving the Poisson equation typically takes more than \SI{90}{\percent} of the total runtime.
+In addition to non-Poisson kernels comprising a low portion of the overall runtime, the effect of thread divergence turns out to be small.
+For most kernels, divergence only occurs in grid cells near the body, which generally comprises a small fraction of the cells.
+
+Second, cuIBM-FSI only recalculates the preconditioner used for the multigrid method (performing the linear system solves) if solution of the previous time step required more than 100 iterations.
+Moving-body simulations normally recalculate the preconditioner each time step, but Layton et al.~\cite{layton2011cuibm} found it possible to skip this at some time steps without loss of fidelity.
+When using the CUSP library to perform the multigrid method, creating the preconditioner can take as much time as solving the Poisson equation itself.
+Thus, we reduce the cost associated with the preconditioner significantly by only recreating it when necessary.
+%The external method does not need the preconditioner to be remade, even when the body is moving, because each node always depends on the same neighbors regardless of the position of the body.
+
+\subsection{The immersed boundary method of Luo et al.}
+%
+To facilitate the discussion of immersed boundary methods, the nomenclature with regards to node identification will be explained here.
 The nomenclature is mostly adopted from the work of Luo et al.~\cite{Luo:2012gx} and is similar to Mittal et al.~\cite{Mittal:2005ii}.
 There are four types of nodes.
 Nodes immediately outside and inside the body are called hybrid nodes and ghost nodes, respectively.
-Everything outside of the body that is not a hybrid node is a fluid node.
-Everything else (i.e., all nodes inside the body that are not ghost nodes) are solid nodes.
+All nodes outside the body but not a hybrid node are fluid nodes.
+Nodes inside the body but not ghost nodes are solid nodes.
 Figure~\ref{fig:node id} shows an example body and grid with labeled nodes.
 
-\begin{figure}[!htb]
+\begin{figure}[htbp]
 	\centering
 	\includestandalone[width=0.5\textwidth]{node_id}
 	\caption{An example grid with $u$-velocity nodes labeled. Squares mark nodes inside the immersed boundary and circles mark nodes outside the boundary. Solid markers indicate the nearest nodes to the boundary.}
 	\label{fig:node id}
 \end{figure}
 
-Hybrid nodes are interpolated for using values at the body and nearby fluid nodes.
-Ghost nodes have data extrapolated across the body using nearby fluid nodes,in a way that enforces the body's boundary conditions.
-Fluid nodes are solved with the Navier--Stokes equations.
-The treatment of solid nodes does not affect the solution, but it does affect the computational time and force calculation.
-If solid nodes are solved, an arbitrary flow field will develop inside the body.
+Quantities at hybrid nodes are interpolated for using values at the body and nearby fluid nodes.
+Ghost nodes have data extrapolated across the body using nearby fluid nodes, in a way that enforces the boundary conditions at the body.
+Fluid nodes are solved using the discretized Navier--Stokes equations described in Section~\ref{sec:methods}.
+The treatment of solid nodes does not affect the solution for the fluid nodes, but it does affect the computational time and force calculation.
+Solving for quantities at solid nodes will result in an arbitrary flow field inside the body.
 
-At the beginning of each time step, nodes are identified using a ray-tracing algorithm (described in O'Rourke~\cite{o1998computational}).
-The implementation is based on the CPU implementation from cuIBM~\cite{krishnan2012validation}.
-One thread is generated for each node, be it $u$, $v$, or $p$ and this thread performs the following actions to find rays in the $x$ direction.
-First, the Lagrangian body nodes are looped through to make segments with their nearest neighbors.
-If the top of this segment is above the node and the bottom of the segment is below the node, then the $x$ location of the body at the height of the node is found (open circle in Figure~\ref{fig:node id 1}).
+At the beginning of each time step, nodes are identified using a ray-tracing algorithm (described by O'Rourke~\cite{o1998computational}).
+Our implementation is based on the CPU algorithm in cuIBM~\cite{krishnan2012validation,Krishnan2017}.
+One thread is generated for each node (regardless of if it is a $u$, $v$, or $p$ node) and this thread performs the following actions to find rays in the $x$ direction.
+First, the Lagrangian body nodes are iterated through to make segments with their nearest neighbors.
+If the top of this segment lies above the node and the bottom of the segment falls below the node, then the $x$ location of the body at the height of the node is found (open circle in Figure~\ref{fig:node id 1}).
 The node is then tested for proximity to the body in the $x$ direction.
-To determine what the node is, five $x$-coordinates are used: $x_{i-1}$, $x_{i}$, $x_{i+1}$, $x_{BI}$, and $x_{\text{body center}}$.
-Using Figure \ref{fig:node id 1} for example, the body intercept will test as being greater than the body center, greater than $x_{i-1}$, and less than $x_{i}$, which makes $u_{i,j}$ a hybrid node.
-\begin{figure}
+Determining the type of node uses five $x$-coordinates: $x_{i-1}$, $x_{i}$, $x_{i+1}$, $x_{BI}$, and $x_{\text{body center}}$.
+Using Figure~\ref{fig:node id 1} as an example, the body intercept will test as being greater than the body center, greater than $x_{i-1}$, and less than $x_{i}$, which makes $u_{i,j}$ a hybrid node.
+
+\begin{figure}[htbp]
 	\centering
 	\includestandalone[width=0.5\textwidth]{node_id_1}
 	\caption{To find the hybrid and ghost nodes the position of the body must be translated from the Lagrangian body nodes to the Eulerian grid. The solid line is the real body which is represented by the Lagrangian body nodes (solid circles). The dashed lines are drawn between the body nodes and represent the discretized body.}
 	\label{fig:node id 1}
 \end{figure}
-It is possible for a hybrid or ghost node to be unable to find the body when searching in the $x$ direction, e.g., if the node is above the highest body node.
+
+It is possible for a hybrid or ghost node to be unable to find the body when searching in the $x$ direction, e.g., if the node lies above the highest body node.
 After the algorithm looks for intersections in the $x$ direction, it searches in the $y$ direction.
-In the case where a node is able to find the body in both the $x$ and $y$ directions, the $x$ direction is always chosen.
+If a node can find the body in both the $x$ and $y$ directions, it chooses the $x$ direction.
 The $v$-velocity and pressure nodes are found in the same way as described above, but using different coordinates.
 
-After all the points have been tagged, the solid nodes are set to an arbitrary value so they can be easily found later.
-This step is not critical for the solution of the Navier--Stokes equations, but is needed for the force calculation, which disregards everything inside the body, and can be convenient when visualizing the solution.
+After the algorithms tags all nodes, it sets values at the solid nodes to an arbitrary value so they can be easily found later.
+This step is not critical for the solution of the discretized Navier--Stokes equations, but is needed for calculating drag force, which disregards everything inside the body, and can be convenient when visualizing the solution.
 
 \subsubsection{Weighting}
-As the body moves across the background grid, nodes change how they calculate values.
-For example a bulk-fluid $u$-velocity node at time step $t^n$ could become hybrid node at time step $t^{n+1}$.
+%
+As the body moves across the background grid, the classification of nodes may change.
+For example, a bulk-fluid $u$-velocity node at time step $t^n$ could become a hybrid node at time step $t^{n+1}$.
 As the node transitions, the intermediate velocity is first calculated by Navier--Stokes (Equation~\eqref{eq:Intermediate Velocity}), then with interpolation (Equation~\eqref{eq:Interpolation}).
 Both equations are correct representations for the intermediate velocity, but have different errors, causing the calculated velocities to be slightly different.
 This discontinuous change is responsible for numerical oscillations.
@@ -517,7 +547,7 @@ If the CUSP multi-grid solver encounters multiple (0,0,0) entries, it will fail 
 It is easier to add a zero value than to restructure the matrix to not have a value.
 Ghost node two, which depends on the nodes marked with open squares, does not need any special treatment because it uses five nodes.
 
-Figure \ref{fig:ID combined stencil} shows the stencil for hybrid nodes, with two overlapping stencils.
+Figure~\ref{fig:ID combined stencil} shows the stencil for hybrid nodes, with two overlapping stencils.
 The interpolation stencil is shown by the shaded region and depends on the nodes marked with circles.
 The Navier--Stokes stencil is marked with the solid black lines and open squares.
 Combining the two into a hybrid stencil results in six entries to the sparse matrix.
@@ -540,42 +570,46 @@ The implementation of the embedded Poisson equation is the same as outlined abov
 \section{Verification and validation}
 \label{chapter:Validation}
 
-Both methods are tested using several well studies simulations.
-The first simulation tests the solvers ability to handle a body with prescribed motion.
+Next, we test both methods using several well-studied benchmark configurations.
+The first configuration tests a solvers' ability to handle a body with prescribed motion.
 In this test, a cylinder has a set sinusoidal motion in an initially stagnant flow.
-The second simulation features an impulsively started cylinder, with a set sinusoidal motion.
+The second configuration features an impulsively started cylinder, with a set sinusoidal motion.
 Both of these tests look at the force calculation for a moving body and help quantify the numerical oscillation caused by direct forcing.
-The last simulation is called vortex-induced vibration (VIV) and tests the solvers' ability to accurately predict body location, velocity, and force when the body motion is not prescribed.
+The last configuration, vortex-induced vibration (VIV), tests a solvers' ability to accurately predict body location, velocity, and force when the body motion is not prescribed.
 
 \subsection{Flow driven by in-line oscillating cylinder}
 \label{sec:Oscillating Cylinder in no Flow}
 
 Liao et al.~\cite{liao2010simulating} used an in-line oscillating cylinder with initial velocities
-and Dirichlet boundary conditions of zero to demonstrate numerical oscillation suppression.
+and Dirichlet boundary conditions of zero to show the suppression of numerical oscillations.
 Here, we validate the results of Liao et al.~\cite{liao2010simulating} and cuIBM-FSI
 against the experimental data of D\"{u}tsch et al.~\cite{dutsch1998low}.
-The equations that govern cylinder motion, \eqref{eq:cylinder position2} and \eqref{eq:cylinder velocity2}, are
-the same form as above but with a period, maximum velocity, and position of 1, 1, and $1/2\pi$:
+Cylinder motion is governed by
 \begin{align}
 x(t) &= \frac{-1}{2\pi} \sin(2\pi t) \quad \text{and} \label{eq:cylinder position2}\\
-u(t) &= -\cos(2\pi t) \;. \label{eq:cylinder velocity2}
+u(t) &= -\cos(2\pi t) \;, \label{eq:cylinder velocity2}
 \end{align}
+where the period, maximum velocity, and horizontal position are 1, 1, and $1/2\pi$, respectively.
 The cylinder diameter, 0.2, matches that of Liao et al.~\cite{liao2010simulating}.
 These values give the simulation a Reynolds number of 100 and Keulegan--Carpenter (KC) number of 5.
 The KC number is a non-dimensional quantity representing the importance of drag and
-inertial forces on an oscillating body, calculated with Equation~\eqref{eq:KC}:
+inertial forces on an oscillating body, calculated with
 \begin{equation}
 \text{KC} = \frac{U_\text{max}}{fD} \label{eq:KC} \;,
 \end{equation}
 where $f$ is the oscillation frequency.
 The domain spans $\pm$ 5.5 in $x$ and $\pm$ 3.5 in $y$, and has a fine, uniform grid
 spacing of $\Delta x = \Delta y = 0.005$ from $(-0.4,-0.2)$ to $(0.4,0.2)$.
-Figure \ref{fig:staticInit} shows the force during the first period versus the steady-state
-experimental data of D\"{u}tsch et al.~\cite{dutsch1998low}.
-Figure \ref{fig:staticSteady} shows the steady state drag.
+
+\todo[inline]{how was drag force calculated?}
+
+Figure~\ref{fig:staticInit} shows the drag force during the first period versus the
+steady-state experimental data of D\"{u}tsch et al.~\cite{dutsch1998low}, while
+Figure~\ref{fig:staticSteady} shows the steady state drag.
 The embedded interpolation method suppresses the oscillations more effectively than the external method.
 It also better predicts the maximum peak drag force, with around \SI{15}{\percent}
 error compared with the experimental data.
+
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.75\linewidth]{static_init.pdf}
@@ -596,11 +630,11 @@ error compared with the experimental data.
     \label{fig:staticSteady}
 \end{figure}
 
-Figure~\ref{fig:KC 10} shows the validation against D\"{u}tsch et al.~\cite{dutsch1998low}
-for a Reynolds number of 200 and KC of 10, during the 14th period.
-D\"{u}tsch et al.\ compared drag forces for various cycles into the low 100s.
-Re and KC can both be doubled by doubling the maximum velocity of the body, which can
-be done by multiplying Equation~\eqref{eq:cylinder velocity2} by two and integrating to
+Figure~\ref{fig:KC 10} compares the computed drag forces with the experimental results
+of D\"{u}tsch et al.~\cite{dutsch1998low} for a Reynolds number of 200 and KC of 10, during the 14th oscillation period.
+%D\"{u}tsch et al.\ compared drag forces for various cycles into the low 100s.
+Re and KC were doubled by doubling the maximum velocity of the body, done
+by multiplying Eq.~\eqref{eq:cylinder velocity2} by two and integrating to
 obtain a new position equation. Once again, the embedded method suppresses oscillations
 better than the external method, but both reasonably predict the drag force.
 \begin{figure}[htbp]
@@ -616,14 +650,14 @@ better than the external method, but both reasonably predict the drag force.
 \subsection{Impulsively started oscillating cylinder}
 \label{sec:osccylinder}
 
-The impulsively started oscillating cylinder is a simulation used by Luo et al.~\cite{Luo:2012gx}
-to demonstrate and compare the magnitude numerical oscillations between different immersed boundary methods.
+The impulsively started oscillating cylinder is a configuration used by Luo et
+al.~\cite{Luo:2012gx} to demonstrate and compare numerical oscillations between different immersed boundary methods.
 An ``impulsively started'' simulation sets the initial conditions to mimic a body being struck by a hammer.
-In the first few time steps, a large shear stress on the body will cause high drag,
+In the first few time steps, a large shear stress on the body causes high drag,
 which rapidly dissipates as the boundary layer develops. To simulate an impulsively started
-cylinder, an initial $u$-velocity of one is set over the entire fluid domain.
+cylinder, we set $u = 1$ as the initial condition for the entire fluid domain.
 The left, top, and bottom boundaries use Dirichlet $u$ and $v$ conditions with values of
-one and zero forming an inlet and two free stream boundaries, respectively.
+one and zero to form an inlet and two free stream boundaries, respectively.
 A convective boundary condition is used at the exit.\todo{clarify convective BC}{}
 The grid is uniformly spaced in the area immediately around the immersed body,
 which spans $(-2,-2)$ to $(2,2)$. The cells stretch moving away from the center
@@ -636,50 +670,53 @@ The cylinder oscillates along the horizontal centerline according to
 \end{align}
 The resulting period, maximum velocity, and position are 5, $\pi/10$, and 0.25, respectively.
 Figure~\ref{fig:osccylinder} compares the numerical oscillations observed in drag vs.~time
-for the external and embedded methods. The uniform section is discretized into a $64 \times 64$ grid
-for the first row and $ 128 \times 128$ grid for last three rows row for $h$ (center
-grid spacing) values of 0.0625 and 0.03125. The maximum CFL numbers by row are
-approximately \numlist{0.35; 0.35; 0.7; 1.0}.
+for the external and embedded methods. The uniform section is discretized into a
+$64 \times 64$ grid for the first row and $ 128 \times 128$ grid for last three
+rows row for center-grid spacing values of \num{6.25e-2} and \num{3.125e-2}.
+The maximum CFL numbers by row are approximately \numlist{0.35; 0.35; 0.7; 1.0}.
+
 \begin{figure*}[htbp]
     \centering
     \includegraphics[width=\textwidth]{osc_cylinder}
     \caption{Drag force for flow over an in-line oscillating cylinder. The left
     and right columns show the external and embedded interpolation methods, respectively.
     The four rows show cases with maximum CFL numbers of \numlist{0.35; 0.35; 0.7; 1.0},
-    respectively, and a middle grid spacing of \numlist{0.0625; 0.03125; 0.03125; 0.03125}.}
+    respectively, and a middle grid spacing of \numlist{6.25e-2; 3.125e-2; 3.125e-2; 3.125e-2}.}
     \label{fig:osccylinder}
 \end{figure*}
 
-Both methods increasingly suppress the magnitude of the oscillations with decreasing grid size.
-The frequency of the oscillations is also reduced by increasing the maximum CFL number.
-This effect is more easily seen in the left column.
 The embedded method, as expected, more effectively suppresses oscillations because
 it uses updated information for its interpolations, extrapolations, and weighting.
-The bottom row of figures show that both methods only suppress the oscillations,
+Both methods suppress the magnitude of the oscillations better with decreasing grid size.
+The frequency of the oscillations is also reduced by increasing the maximum CFL number.
+This effect is more easily seen in the left column.
+The bottom row of figures show that both methods only \emph{suppress} the oscillations,
 rather than eliminate them entirely. In spite of the oscillations, similar maximum
-force values can be obtained from all eight plots.
+force values can be obtained from all eight cases.
 
 \subsection{Vortex-induced vibration}
 \label{sec:viv}
 
-The vortex-induced vibration simulation tests the solvers' abilities to predict the
+The vortex-induced vibration configuration tests the solvers' abilities to predict the
 position of a freely moving body in coupled fluid-structure interaction.
-The two-dimensional domain is the same as the impulsively started cylinder simulation,
+The two-dimensional domain matches that as the impulsively started cylinder simulation,
 except the uniform grid region ranges from $(-1.5, -1.5)$ to $(1.5, 1.5)$.
 An immersed two-dimensional cylinder (i.e., a circle) starts at the origin with
-no initial velocity. The body is free to move in the $y$ direction but fixed in the
-$x$ and mounted to a notional spring. The Reynolds number is set to a range where
-the cylinder sheds oscillating vortices---in this case Re=150.
-This, combined with the spring, causes the body to establish steady-state sinusoidal motion
+zero initial velocity. The body is fixed in the $x$ direction, but mounted to a
+notional spring for motion in the $y$ direction.
+The Reynolds number is set to a range where
+the cylinder sheds oscillating vortices---in this case, Re=150.
+Coupled with the spring, this vortex shedding causes the body to establish
+steady-state sinusoidal motion
 for which the amplitude can be verified against literature results.
 Following the work of Borazjani et al.~\cite{borazjani2008curvilinear}, the mass-spring
-damper system Eq.~\eqref{eq:masspring} that governs the body's movement is
+damper system that governs the body's movement is
 \begin{equation}
     M \ddydxx{Y}{t} + C \ddt{Y} + KY = F_y \;, \label{eq:masspring}
 \end{equation}
 where $Y$ is the center coordinate of the body, $M$ is the mass, $C$ is the damping factor,
 $K$ is the spring stiffness, and $F_y$ is the total fluid force on the body in the $y$ direction.
-The natural frequency and critical damping are respectively given by
+The natural frequency and critical damping factor are respectively given by
 \begin{align}
     \omega &= 2\pi f = \sqrt{\frac{K}{M}} \quad \text{and} \label{eq:nf}\\
     C_{cr} &= 2\sqrt{MK} = 2K\omega \;. \label{eq:cd}
@@ -690,22 +727,23 @@ Equation~\eqref{eq:masspring} can then be non-dimensionalized to
      + 4\pi^2\frac{1}{U_{red}^2}Y=\frac{1}{2M_{red}}C_Y \;,
      \label{eq:ndmasspring}
 \end{equation}
-where the non-dimensional coefficients are the damping coefficient $\zeta=\frac{C}{C_{cr}}$,
-reduced velocity $U_{red}=\frac{U}{fD}$, reduced mass $M_{red}=\frac{M}{\rho D^2}$,
-and force coefficient $C_Y=\frac{2F_Y}{\rho U^2 D}$. Varying the parameters Re, $\zeta$,
+where the non-dimensional coefficients are the damping coefficient $\zeta=C / C_{cr}$,
+reduced velocity $U_{red}=U / (fD)$, reduced mass $M_{red}=M / \left(\rho D^2 \right)$,
+and force coefficient $C_Y= 2 F_Y  / \left( \rho U^2 D \right)$.
+Varying the parameters Re, $\zeta$,
 $M_{red}$, and $U_{red}$ changes the resulting steady-state amplitude.
-In vortex-induced vibration there is a ``lock-in'' phenomenon that occurs when
-Re=150, $\zeta$=0, $M_{red}$=2, and $U_{red}$ is varied between \numrange{3}{8}.
+A ``lock-in'' phenomenon occurs when
+$\text{Re}=150$, $\zeta=0$, $M_{red}=2$, and $U_{red}$ is varied between \numrange{3}{8}.
 At either extreme for $U_{red}$, the steady-state amplitude will be small, while
 values in between will lead to much larger steady-state amplitudes.
 
-Body position can be updated using two ways: loose and strong coupling~\cite{Sotiropoulos:2014gv}.
-Loose coupling comes from an explicit discretization of Equation~\eqref{eq:ndmasspring}.
+Body position can be updated in two ways: loose and strong coupling~\cite{Sotiropoulos:2014gv}.
+Loose coupling comes from an explicit discretization of Eq.~\eqref{eq:ndmasspring}.
 A time step using loose coupling proceeds as follows:
 \begin{enumerate}
-    \item Solve for field values at $t^{n+1}$ using the Navier--Stokes equations.
-    \item Calculate body forces.
-    \item Move body using
+    \item Solve for field values at $t^{n+1}$ using the discrete Navier--Stokes equations
+    \item Calculate body forces
+    \item Move the body using
 \end{enumerate}
 \begin{align}
 v^{n+1} &= v^n-\frac{\Delta t\pi^24}{U_{red}^2}\left(y^n+\frac{\Delta tv^n}{2}\right) + \frac{\Delta tC_Y}{\left(2M_{red}\right)\left(1+\frac{4\Delta t^2\pi^2}{U_{red}^2}\right)} \label{eq:lc1} \\
@@ -714,41 +752,41 @@ y^{n+1} &= y^n +\frac{\Delta t\left(v^{n+1}+v^n\right)}{2}\; \label{eq:lc2}
 
 Equation~\eqref{eq:ndmasspring} can also be discretized implicitly to achieve strong coupling.
 A strong coupling time step repeatedly calculates the field values and body
-kinetics/kinematics until reaching a converged solution.
-As this causes the Poisson equation to be solved multiple times for each time step,
-strong coupling is a significantly more computationally expensive method:
+motion until reaching a converged solution.
+This requires solving the Poisson equation multiple times for each time step,
+so strong coupling is a significantly more computationally expensive method.
+The strong-coupling procedure is
 \begin{enumerate}
-    \item Solve for field values at sub step $t^{k+1}$ using the Navier--Stokes equations.
+    \item Solve for field values at $t^{k+1}$ using the discrete Navier--Stokes equations
     \item Calculate body forces
-    \item Move body using Equations \eqref{eq:lc1} and
+    \item Move body using Eq.~\eqref{eq:lc1} and
     \begin{equation}
         y^{k+1} = \alpha \left(y^n+\frac{\Delta t\left(v^{k+1}+v^n\right)}{2}\right) +\left(1-\alpha\right)y^k \;,
         \label{eq:sc}
     \end{equation}
-    where $\alpha$ is a relaxation value.
-    \item If $|Y^{k+1}-Y^k| \approx 0$, advance time; otherwise advance sub step.
+    where $\alpha$ is a relaxation value\todo{what value?}\
+    \item If $|Y^{k+1}-Y^k| \approx 0$, advance time; otherwise repeat starting at Step 1
 \end{enumerate}
 
-Figure~\ref{fig:viv_combine} shows the maximum amplitude of six vortex-induced
-vibration simulations as calculated by external loose coupling, external strong coupling,
-embedded loose coupling, and embedded strong coupling.\todo{what six?}{}
-Results are verified against results from the curvilinear immersed boundary method of Borazjani
+Figure~\ref{fig:viv_combine} shows the maximum amplitudes for $U_{\text{red}} = $ \numrange{3}{8} using combinations of the external and embedded methods with loose and strong coupling.
+Results are compared with those from the curvilinear immersed boundary method of Borazjani
 et al.~\cite{borazjani2008curvilinear} and the unstructured finite-element approach
 of Ahn and Kallinderis~\cite{ahn2006strongly}.
 All four configurations used to simulate the vortex-induced vibration phenomena
 (i.e., embedded/external and loose/strong coupling) predict the maximum steady state
-amplitude accurately, although the external method exhibits noticeable oscillations
-of similar magnitude to those shown for the impulsively started oscillating cylinder.
-The main difference between the external and embedded method is the wall-clock time
-taken to run each, with the embedded method taking nearly an order of magnitude more
+amplitude reasonably well, although the external method exhibits noticeable oscillations,
+with similar magnitude to those shown for the impulsively started oscillating cylinder problem.
+The external and embedded methods mainly differ in their computational cost;
+the embedded method takes nearly an order of magnitude more time for these problems
 than the external method.
-\begin{figure*}
+
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{VIV_combine}
     \caption{Maximum cylinder amplitude in the lock-in region as computed with the
     external and embedded methods using loose and strong coupling.}
     \label{fig:viv_combine}
-\end{figure*}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Solver characterization}
@@ -924,6 +962,7 @@ Other libraries, such as AmgX are available that have more advanced multi-grid m
 In addition, CUSP does not support multiple GPUs, meaning that this code can not be used on a cluster.
 
 \section*{Acknowledgments}
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
 We gratefully acknowledge the support of NVIDIA Corporation with the donation of the Tesla K20 GPU used for this research.
 We also thank the Barba Group for developing, maintaining, and distributing the cuIBM code.
 
