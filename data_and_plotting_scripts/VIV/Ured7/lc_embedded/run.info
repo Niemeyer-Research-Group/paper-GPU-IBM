@@ -1,0 +1,9 @@
+                --nx	420
+                --ny	420
+         --startStep	0
+                --nt	12000
+             --nsave	6000
+                --dt	0.005
+           --vortlim	15
+            --folder	/scratch/src/cuIBM/validation/osc/VIV/Ured7
+                --nu	0.00666667
