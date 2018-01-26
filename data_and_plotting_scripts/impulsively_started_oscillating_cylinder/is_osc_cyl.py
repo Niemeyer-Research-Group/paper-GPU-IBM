@@ -28,6 +28,10 @@ g = numpy.genfromtxt('forces_ext_cfl1p0_h03125', delimiter=',')
 h = numpy.genfromtxt('forces_emb_cfl1p0_h03125', delimiter=',')
 
 fig, ((axa,axb), (axc,axd), (axe,axf), (axg,axh)) = plt.subplots(4, 2, sharex='col', sharey='row')
+fig.add_subplot(111, frameon=False)
+plt.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+plt.grid(False)
+
 axa.plot(a[:,0], a[:,1], '-', color='black', linewidth=1)
 axb.plot(b[:,0], b[:,1], '-', color='black', linewidth=1)
 
@@ -55,14 +59,16 @@ axg.set_xlabel('Time')
 axh.set_xlabel('Time')
 
 #run info
-axa.set_ylabel('Drag force\n(h: 0.0625\n CFL: 0.35)')
-axc.set_ylabel('Drag force\n(h: 0.03125\n CFL: 0.35)')
-axe.set_ylabel('Drag force\n(h: 0.03125\n CFL: 0.7)')
-axg.set_ylabel('Drag force\n(h: 0.03125\n CFL: 1.0)')
+axa.set_ylabel('h: 0.0625\nCFL: 0.35')
+axc.set_ylabel('h: 0.03125\nCFL: 0.35')
+axe.set_ylabel('h: 0.03125\nCFL: 0.7')
+axg.set_ylabel('h: 0.03125\nCFL: 1.0')
+
+plt.ylabel('Drag force', labelpad=25)
 
 plt.tight_layout()
 pp = PdfPages(os.path.join(direct, 'osc_cylinder.pdf'))
-pp.savefig()
+pp.savefig(bbox_inches='tight')
 pp.close()
 plt.clf()
 
